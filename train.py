@@ -82,9 +82,9 @@ def train():
 
     # step 5
     # save final weights
-    # neural_network.save_weights(filepath=TrainConfig.CHECK_POINT_DIR, save_format='tf')
+    neural_network.save_weights(filepath=TrainConfig.FINAL_DIR, save_format='tf')
     # save final model
-    # tf.keras.models.save_model(neural_network, TrainConfig.TRAIN_BEST_EXPORT_DIR)
+    tf.keras.models.save_model(neural_network, TrainConfig.FINAL_DIR)
 
     # TODO
     # step 6

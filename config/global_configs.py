@@ -145,6 +145,7 @@ class TrainConfig(BaseConfig):
     MODEL_DIR = os.path.join(OutConfig.instance().out, 'freeze_model')
     TRAIN_BEST_EXPORT_DIR = os.path.join(TRAIN_DIR, 'best_export')
     CHECK_POINT_DIR = os.path.join(TRAIN_DIR, 'check_point')
+    FINAL_DIR = os.path.join(TRAIN_DIR, 'final')
     LOG_DIR = os.path.join(TRAIN_DIR, 'logs')
     LOG_FILE = os.path.join(LOG_DIR, 'train.log')
 
@@ -170,7 +171,7 @@ class TrainConfig(BaseConfig):
         print('update train config')
         # 如果是debug模式，则更改参数
         if BaseConfig.DEBUG:
-            TrainConfig.EPOCHS = 100
+            TrainConfig.EPOCHS = 2
             # 把学习率改大，学习速度更快
             TrainConfig.INITIAL_LEARNING_RATE = 1e-3
 
