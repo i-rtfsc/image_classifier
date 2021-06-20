@@ -64,7 +64,16 @@ def train():
 
     # step 2
     # init & build network(model)
-    neural_network = NeuralNetwork(num_classes=len(labels), network=TrainConfig.NEURAL_NETWORK)
+    neural_network = NeuralNetwork(num_classes=len(labels),
+                                   input_shape=(None, TFRecordConfig.IMAGE_WIDTH, TFRecordConfig.IMAGE_HEIGHT,
+                                                TFRecordConfig.CHANNELS),
+                                   input_tensor_name=TrainConfig.INPUT_TENSOR_NAME,
+                                   output_tensor_name=TrainConfig.OUTPUT_TENSOR_NAME,
+                                   initial_learning_rate=TrainConfig.INITIAL_LEARNING_RATE,
+                                   decay_steps=TrainConfig.DECAY_STEPS,
+                                   decay_rate=TrainConfig.DECAY_RATE,
+                                   metrics=TrainConfig.METRICS,
+                                   network=TrainConfig.NEURAL_NETWORK)
     neural_network = neural_network.build_model()
 
     # step 3

@@ -273,8 +273,8 @@ class InceptionResNetV1(tf.keras.Model):
 
         return x
 
-    def get_avg_pool_and_fc(self, num_classes):
+    def get_avg_pool_and_fc(self, num_classes, output_tensor_name):
         avg_pool = tf.keras.layers.GlobalAveragePooling2D()
-        fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax)
+        fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
 
         return avg_pool, fc

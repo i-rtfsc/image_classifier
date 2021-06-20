@@ -165,6 +165,11 @@ class TrainConfig(BaseConfig):
     MIN_DELTA = 0.0001
     PATIENCE = 100
 
+    INPUT_TENSOR_NAME = 'input'
+    OUTPUT_TENSOR_NAME = 'Softmax'
+
+    METRICS = ['accuracy']
+
     @staticmethod
     def update():
         BaseConfig.update()
