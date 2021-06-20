@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 from base import file_utils
-from config.global_configs import MnistConfig
+from config.global_configs import MnistConfig, BaseConfig
 
 
 def download(target_dir, files):
@@ -29,61 +29,7 @@ def custom_zip(seq1, seq2):
             return
 
 
-def save_images(number_dict, train_image, train_label, test_image, test_label):
-    for image_f, label_f in [(train_image, train_label), (test_image, test_label)]:
-        with open(image_f, 'rb') as f:
-            images = f.read()
-        with open(label_f, 'rb') as f:
-            labels = f.read()
-
-        images = [d for d in images[16:]]
-        images = np.array(images, dtype=np.uint8)
-        images = images.reshape((-1, MnistConfig.IMAGE_WIDTH, MnistConfig.IMAGE_HEIGHT, MnistConfig.CHANNELS))
-
-        for (_, image), (k, l) in custom_zip(enumerate(images), enumerate(labels[8:])):
-            label = number_dict[l]
-            outdir = os.path.join(MnistConfig.MNIST_IMAGE_TRAIN, label)
-            filename = '{}-{}.png'.format(label, k)
-            print(outdir, filename)
-            file_utils.create_directory(outdir)
-
-            cv2.imwrite(os.path.join(outdir, filename), image)
-
-
-def save_images2(number_dict, target_dir, train_image, train_label):
-    for image_f, label_f in [(train_image, train_label)]:
-        with open(image_f, 'rb') as f:
-            images = f.read()
-        with open(label_f, 'rb') as f:
-            labels = f.read()
-
-        images = [d for d in images[16:]]
-        images = np.array(images, dtype=np.uint8)
-        images = images.reshape((-1, 28, 28))
-
-        for (k, image), (_, l) in custom_zip(enumerate(images), enumerate(labels[8:])):
-            label = number_dict[l]
-            outdir = os.path.join(target_dir, label)
-            filename = '{}-{}.png'.format(label, k)
-            print(outdir, filename)
-            file_utils.create_directory(outdir)
-
-            cv2.imwrite(os.path.join(outdir, filename), image)
-
-
-def main():
-    train_image = 'train-images-idx3-ubyte'
-    train_label = 'train-labels-idx1-ubyte'
-
-    test_image = 't10k-images-idx3-ubyte'
-    test_label = 't10k-labels-idx1-ubyte'
-
-    # download(MnistConfig.MNIST_IMAGE_DOWNLOAD, [train_image, train_label, test_image, test_label])
-    #
-    # download_files = [os.path.join(MnistConfig.MNIST_IMAGE_DOWNLOAD, file) for file in
-    #                   [train_image, train_label, test_image, test_label]]
-    # extract(MnistConfig.MNIST_IMAGE_EXTRACT, download_files)
-
+def save_images(train_image, train_label, test_image, test_label):
     number_dict = dict()
     number_dict[0] = 'zero'
     number_dict[1] = 'one'
@@ -96,8 +42,46 @@ def main():
     number_dict[8] = 'eight'
     number_dict[9] = 'nine'
 
-    save_images(number_dict,
-                os.path.join(MnistConfig.MNIST_IMAGE_EXTRACT, train_image),
+    for image_f, label_f in [(train_image, train_label), (test_image, test_label)]:
+        with open(image_f, 'rb') as f:
+            images = f.read()
+        with open(label_f, 'rb') as f:
+            labels = f.read()
+
+        images = [d for d in images[16:]]
+        images = np.array(images, dtype=np.uint8)
+        images = images.reshape((-1, MnistConfig.IMAGE_WIDTH, MnistConfig.IMAGE_HEIGHT, MnistConfig.CHANNELS))
+
+        for (_, image), (k, l) in custom_zip(enumerate(images), enumerate(labels[8:])):
+            label = number_dict[l]
+            out_dir = os.path.join(MnistConfig.MNIST_IMAGE_TRAIN, label)
+            filename = '{}-{}.png'.format(label, k)
+            if BaseConfig.DEBUG:
+                print(out_dir, filename)
+            file_utils.create_directory(out_dir)
+            cv2.imwrite(os.path.join(out_dir, filename), image)
+
+
+def main():
+    train_image = 'train-images-idx3-ubyte'
+    train_label = 'train-labels-idx1-ubyte'
+
+    test_image = 't10k-images-idx3-ubyte'
+    test_label = 't10k-labels-idx1-ubyte'
+
+    # step 1
+    # download files
+    download(MnistConfig.MNIST_IMAGE_DOWNLOAD, [train_image, train_label, test_image, test_label])
+
+    # step 2
+    # extract files
+    download_files = [os.path.join(MnistConfig.MNIST_IMAGE_DOWNLOAD, file) for file in
+                      [train_image, train_label, test_image, test_label]]
+    extract(MnistConfig.MNIST_IMAGE_EXTRACT, download_files)
+
+    # step 3
+    # save files
+    save_images(os.path.join(MnistConfig.MNIST_IMAGE_EXTRACT, train_image),
                 os.path.join(MnistConfig.MNIST_IMAGE_EXTRACT, train_label),
                 os.path.join(MnistConfig.MNIST_IMAGE_EXTRACT, test_image),
                 os.path.join(MnistConfig.MNIST_IMAGE_EXTRACT, test_label)
