@@ -61,7 +61,6 @@ class ProjectConfig(BaseConfig):
             file = os.path.join(self.root_dir, 'config', 'project.cfg')
             base_config.read(file)
             configs = base_config[self.project.upper()]
-
             self.image_width = int(configs['IMAGE_WIDTH'])
             self.image_height = int(configs['IMAGE_HEIGHT'])
             self.channels = int(configs['CHANNELS'])
@@ -69,7 +68,6 @@ class ProjectConfig(BaseConfig):
             self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
             self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
             self.source_image_extract_dir = configs['SOURCE_IMAGE_EXTRACT']
-
         except Exception as e:
             print('exception when parse, error = ', e)
 
@@ -80,7 +78,7 @@ class UserConfig(BaseConfig):
         self.bot = None
 
     def update(self, *args, **kwargs):
-        if bot is None:
+        if self.bot is None:
             try:
                 config = configparser.ConfigParser()
                 config.read(os.path.join(ProjectConfig.getDefault().root_dir, 'config', 'secret.cfg'))
@@ -125,17 +123,14 @@ class TFRecordBaseConfig(BaseConfig):
 class TFRecordConfig(TFRecordBaseConfig):
     def __init__(self):
         print('tfrecord init')
-
         # 在update函数更新
         self.source_image_train_dir = None
         self.image_width = None
         self.image_height = None
         self.channels = None
         self.image_size = None
-
         self.tfrecord_dir = None
         self.meta_dir = None
-
         self.train_tfrecord_list = list()
         self.val_tfrecord_list = list()
         self.test_tfrecord_list = list()
@@ -239,7 +234,5 @@ class TrainConfig(TrainBaseConfig):
             self.monitor = configs['MONITOR']
             self.min_delta = float(configs['MIN_DELTA'])
             self.patience = int(configs['PATIENCE'])
-
-
         except Exception as e:
             print('exception when parse, error = ', e)

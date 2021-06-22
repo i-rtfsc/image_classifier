@@ -12,8 +12,8 @@ import tensorflow as tf
 from base import time_utils
 from base.log_utils import TerminalLogger
 from callbacks import TrainCallback
-from config.global_configs import BaseConfig, ProjectConfig, TrainBaseConfig, TrainConfig, TFRecordBaseConfig, \
-    TFRecordConfig, UserConfig
+from config.global_configs import BaseConfig, ProjectConfig, TrainBaseConfig, \
+    TrainConfig, TFRecordBaseConfig, TFRecordConfig, UserConfig
 from dataset.write_tfrecord import WriteTfrecord
 from dataset.read_tfrecord import ReadTfrecord
 from models.neural_network import NeuralNetwork
