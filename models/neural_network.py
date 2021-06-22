@@ -3,13 +3,11 @@
 # -*- encoding: utf-8 -*-
 
 import tensorflow as tf
-from base.switch_utils import switch, case
-
 from tensorflow import keras
 from tensorflow.keras import optimizers
 
-from config.global_configs import BaseConfig, CNNNetWork, TFRecordConfig, TrainConfig
-
+from base.switch_utils import switch, case
+from config.global_configs import BaseConfig, CNNNetWork, TFRecordConfig, TrainBaseConfig, TrainConfig
 from models.mobilenet_v0 import MobileNetV0
 from models.mobilenet_v1 import MobileNetV1
 from models.mobilenet_v2 import MobileNetV2
@@ -22,15 +20,16 @@ from models.inception_v4 import InceptionV4
 
 class NeuralNetwork(object):
 
-    def __init__(self, num_classes, input_shape=(None, TFRecordConfig.IMAGE_WIDTH, TFRecordConfig.IMAGE_HEIGHT,
-                                                 TFRecordConfig.CHANNELS),
-                 input_tensor_name=TrainConfig.INPUT_TENSOR_NAME,
-                 output_tensor_name=TrainConfig.OUTPUT_TENSOR_NAME,
-                 initial_learning_rate=TrainConfig.INITIAL_LEARNING_RATE,
-                 decay_steps=TrainConfig.DECAY_STEPS,
-                 decay_rate=TrainConfig.DECAY_RATE,
-                 metrics=TrainConfig.METRICS,
-                 network=TrainConfig.NEURAL_NETWORK):
+    def __init__(self, num_classes, input_shape=(None, TFRecordConfig.getDefault().image_width,
+                                                 TFRecordConfig.getDefault().image_height,
+                                                 TFRecordConfig.getDefault().channels),
+                 input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
+                 output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
+                 initial_learning_rate=TrainConfig.getDefault().initial_learning_rate,
+                 decay_steps=TrainConfig.getDefault().decay_steps,
+                 decay_rate=TrainConfig.getDefault().decay_rate,
+                 metrics=TrainBaseConfig.METRICS,
+                 network=TrainBaseConfig.NEURAL_NETWORK):
         self.num_classes = num_classes
         self.input_shape = input_shape
         self.input_tensor_name = input_tensor_name

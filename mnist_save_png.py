@@ -52,10 +52,10 @@ def save_images(train_image, train_label, test_image, test_label):
         images = np.array(images, dtype=np.uint8)
         images = images.reshape((-1, MnistConfig.IMAGE_WIDTH, MnistConfig.IMAGE_HEIGHT, MnistConfig.CHANNELS))
 
-        for (_, image), (k, l) in custom_zip(enumerate(images), enumerate(labels[8:])):
+        for image, (index, l) in custom_zip(images, enumerate(labels[8:])):
             label = number_dict[l]
             out_dir = os.path.join(MnistConfig.MNIST_IMAGE_TRAIN, label)
-            filename = '{}-{}.png'.format(label, k)
+            filename = '{}-{}.png'.format(label, index)
             if BaseConfig.DEBUG:
                 print(out_dir, filename)
             file_utils.create_directory(out_dir)

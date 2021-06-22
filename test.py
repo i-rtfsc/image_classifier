@@ -2,21 +2,17 @@
 # -*- coding: utf-8 -*-
 # -*- encoding: utf-8 -*-
 
-
-from dataset.write_tfrecord import WriteTfrecord
-from config.global_configs import TrainConfig, TFRecordConfig
-
-
-def write_tfrecord():
-    writeTfrecord = WriteTfrecord()
-    writeTfrecord.dataset_to_tfrecord()
-
+import os
+import tensorflow as tf
 
 if __name__ == '__main__':
     try:
-        # write_tfrecord()
-        print(TFRecordConfig.CHANNELS)
-        TFRecordConfig.update()
-        print(TFRecordConfig.CHANNELS)
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+        gpus = tf.config.experimental.list_physical_devices()
+        if gpus:
+            for gpu in gpus:
+                if 'GPU' in gpu.name:
+                    print(gpu)
+                    tf.config.experimental.set_memory_growth(gpu, True)
     except KeyboardInterrupt:
         exit()

@@ -3,11 +3,8 @@
 # -*- encoding: utf-8 -*-
 
 
-import os
-
 from tensorflow import keras
 from base import time_utils
-from config.global_configs import TrainConfig
 from ts_callbacks import CSVLogger, EarlyStopping, ModelCheckpoint, TensorBoard
 
 
@@ -28,29 +25,27 @@ class LogsCallback(keras.callbacks.Callback):
 class TrainCallback:
 
     @staticmethod
-    def get_callbacks(model):
+    def get_callbacks(model, filepath, model_filepath, monitor, min_delta, patience, csv_log_file, log_dir):
         cks = [
             # LogsCallback(model),
-
             ModelCheckpoint(
-                filepath=os.path.join(TrainConfig.CHECK_POINT_DIR,
-                                      'model-epoch-{epoch:02d}-val_loss-{val_loss:.3f}'),
-                model_filepath=os.path.join(TrainConfig.TRAIN_BEST_EXPORT_DIR),
-                monitor=TrainConfig.MONITOR,
+                filepath=filepath,
+                model_filepath=model_filepath,
+                monitor=monitor,
                 verbose=1,
                 save_best_only=True,
                 save_weights_only=True,
                 mode='auto',
                 period=1),
 
-            EarlyStopping(monitor=TrainConfig.MONITOR,
-                          min_delta=TrainConfig.MIN_DELTA,
-                          patience=TrainConfig.PATIENCE,
+            EarlyStopping(monitor=monitor,
+                          min_delta=min_delta,
+                          patience=patience,
                           mode='auto'),
 
-            CSVLogger(os.path.join(TrainConfig.LOG_DIR, 'training.log')),
+            CSVLogger(csv_log_file),
 
             # tensorboard --logdir=trained/logs/ --port=9893 --bind_all
-            TensorBoard(log_dir=TrainConfig.LOG_DIR)
+            TensorBoard(log_dir=log_dir)
         ]
         return cks

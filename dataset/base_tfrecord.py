@@ -4,7 +4,7 @@
 
 
 import tensorflow as tf
-from config.global_configs import TFRecordConfig
+from config.global_configs import TFRecordBaseConfig, TFRecordConfig
 
 
 class BaseTfrecord(object):
@@ -37,35 +37,35 @@ class BaseTfrecord(object):
     # Create a dictionary with features that may be relevant.
     def create_image_example(self, image_string, label):
         feature = {
-            TFRecordConfig.LABEL: self.int64_feature(label),
-            TFRecordConfig.IMAGE: self.image_feature(image_string),
+            TFRecordBaseConfig.LABEL: self.int64_feature(label),
+            TFRecordBaseConfig.IMAGE: self.image_feature(image_string),
         }
 
         return tf.train.Example(features=tf.train.Features(feature=feature))
 
     def prepare_sample(self, features):
-        image = tf.image.resize(features[TFRecordConfig.IMAGE], size=(TFRecordConfig.IMAGE_SIZE))
-        label = tf.one_hot(features[TFRecordConfig.LABEL], self.num_classes)
-        # label = features[TFRecordConfig.Label]
+        image = tf.image.resize(features[TFRecordBaseConfig.IMAGE], size=(TFRecordConfig.getDefault().image_size))
+        label = tf.one_hot(features[TFRecordBaseConfig.LABEL], self.num_classes)
+        # label = features[TFRecordBaseConfig.Label]
         return image, label
 
     def parse_tfrecord_fn(self, example):
         feature_description = {
-            TFRecordConfig.IMAGE: tf.io.FixedLenFeature([], tf.string),
-            TFRecordConfig.LABEL: tf.io.FixedLenFeature([], tf.int64),
+            TFRecordBaseConfig.IMAGE: tf.io.FixedLenFeature([], tf.string),
+            TFRecordBaseConfig.LABEL: tf.io.FixedLenFeature([], tf.int64),
         }
         example = tf.io.parse_single_example(example, feature_description)
-        example[TFRecordConfig.IMAGE] = tf.io.decode_jpeg(example[TFRecordConfig.IMAGE],
-                                                          channels=TFRecordConfig.CHANNELS)
+        example[TFRecordBaseConfig.IMAGE] = tf.io.decode_jpeg(example[TFRecordBaseConfig.IMAGE],
+                                                              channels=TFRecordConfig.getDefault().channels)
         return example
 
     def get_dataset_from_tfrecord(self, filenames):
         dataset = (
-            tf.data.TFRecordDataset(filenames, num_parallel_reads=TFRecordConfig.AUTOTUNE)
-                .map(self.parse_tfrecord_fn, num_parallel_calls=TFRecordConfig.AUTOTUNE)
-                .map(self.prepare_sample, num_parallel_calls=TFRecordConfig.AUTOTUNE)
-                .shuffle(TFRecordConfig.BATCH_SIZE * 10)
-                .batch(TFRecordConfig.BATCH_SIZE)
-                .prefetch(TFRecordConfig.AUTOTUNE)
+            tf.data.TFRecordDataset(filenames, num_parallel_reads=TFRecordBaseConfig.AUTOTUNE)
+                .map(self.parse_tfrecord_fn, num_parallel_calls=TFRecordBaseConfig.AUTOTUNE)
+                .map(self.prepare_sample, num_parallel_calls=TFRecordBaseConfig.AUTOTUNE)
+                .shuffle(TFRecordBaseConfig.BATCH_SIZE * 10)
+                .batch(TFRecordBaseConfig.BATCH_SIZE)
+                .prefetch(TFRecordBaseConfig.AUTOTUNE)
         )
         return dataset
