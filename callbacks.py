@@ -3,7 +3,10 @@
 # -*- encoding: utf-8 -*-
 
 
+import tensorflow as tf
 from tensorflow import keras
+from keras import backend as K
+
 from base import time_utils
 from ts_callbacks import CSVLogger, EarlyStopping, ModelCheckpoint, TensorBoard
 
@@ -12,14 +15,9 @@ class LogsCallback(keras.callbacks.Callback):
     def __init__(self, model):
         self.model = model
 
-    def on_train_batch_end(self, batch, logs=None):
-        print(" -> on train batch end, for batch {} <- {}".format(batch, time_utils.get_current()))
-
-    def on_test_batch_end(self, batch, logs=None):
-        print(" -> on test batch end, for batch {}, <- {}".format(batch, time_utils.get_current()))
-
     def on_epoch_end(self, epoch, logs=None):
-        print(" -> on epoch end, epoch : {}, <- {}".format(epoch, time_utils.get_current()))
+        current_decayed_lr = self.model.optimizer._decayed_lr(tf.float32).numpy()
+        print(time_utils.get_current(), ' -> current decayed lr = {:0.12f}'.format(current_decayed_lr))
 
 
 class TrainCallback:
@@ -27,7 +25,8 @@ class TrainCallback:
     @staticmethod
     def get_callbacks(model, filepath, model_filepath, monitor, min_delta, patience, csv_log_file, log_dir):
         cks = [
-            # LogsCallback(model),
+            LogsCallback(model),
+
             ModelCheckpoint(
                 filepath=filepath,
                 model_filepath=model_filepath,

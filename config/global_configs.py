@@ -50,7 +50,7 @@ class ProjectConfig(BaseConfig):
         self.source_image_train_dir = None
         self.source_image_download_dir = None
         self.source_image_extract_dir = None
-        print('project config class init, model name = ', self.project)
+        print('project config class init, time = ', self.time)
 
     def update(self, *args, **kwargs):
         self.project = args[0]
