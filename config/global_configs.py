@@ -21,6 +21,7 @@ class CNNNetWork(Enum):
     MOBILE_NET_V3_SMALL = auto()
     INCEPTION_RESNET_V1 = auto()
     INCEPTION_RESNET_V2 = auto()
+    INCEPTION_V3 = auto()
     INCEPTION_V4 = auto()
 
 

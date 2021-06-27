@@ -89,7 +89,7 @@ def train(project):
                                    decay_rate=TrainConfig.getDefault().decay_rate,
                                    metrics=TrainBaseConfig.METRICS,
                                    network=TrainBaseConfig.NEURAL_NETWORK)
-    neural_network = neural_network.build_model()
+    neural_network = neural_network.get_keras_network()
 
     # step 3
     # train model
