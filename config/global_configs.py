@@ -14,6 +14,7 @@ from base.singleton import Singleton
 
 
 class CNNNetWork(Enum):
+    SIMPLE_NET = auto()
     MOBILE_NET_V0 = auto()
     MOBILE_NET_V1 = auto()
     MOBILE_NET_V2 = auto()
@@ -23,6 +24,12 @@ class CNNNetWork(Enum):
     INCEPTION_RESNET_V2 = auto()
     INCEPTION_V3 = auto()
     INCEPTION_V4 = auto()
+
+    @classmethod
+    def value_of(cls, value):
+        for k, v in cls.__members__.items():
+            if k == value.upper():
+                return v
 
 
 class BaseConfig(object):
@@ -43,6 +50,7 @@ class ProjectConfig(BaseConfig):
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
         self.time = time_utils.get_time_str()
         self.project = None
+        self.net: CNNNetWork = CNNNetWork.MOBILE_NET_V0
         self.out = None
         self.image_width = None
         self.image_height = None
@@ -63,9 +71,11 @@ class ProjectConfig(BaseConfig):
                 self.time = value
             if 'project' == key and value is not None:
                 self.project = value
+            if 'net' == key and value is not None:
+                self.net = CNNNetWork.value_of(value)
 
         self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
-        print('project config update config from cfg, project name =', self.project, ' time =',self.time)
+        print('project config update config from cfg, project name =', self.project, ' time =', self.time)
         try:
             base_config = configparser.ConfigParser()
             file = os.path.join(self.root_dir, 'config', 'project.cfg')

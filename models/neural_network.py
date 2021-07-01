@@ -16,6 +16,7 @@ from models.mobilenet_v3_small import MobileNetV3Small
 from models.inception_resnet_v1 import InceptionResNetV1
 from models.inception_resnet_v2 import InceptionResNetV2
 from models.inception_v4 import InceptionV4
+from models.simple_net import SimpleNet
 
 
 class NeuralNetwork(object):
@@ -43,6 +44,13 @@ class NeuralNetwork(object):
     def build_model(self):
         """选择采用哪种卷积网络"""
         while switch(self.network):
+            if case(CNNNetWork.SIMPLE_NET):
+                base_model = SimpleNet(num_classes=self.num_classes,
+                                         input_shape=self.input_shape[1:],
+                                         input_tensor_name=self.input_tensor_name,
+                                         output_tensor_name=self.output_tensor_name)
+                break
+
             if case(CNNNetWork.MOBILE_NET_V0):
                 base_model = MobileNetV0(num_classes=self.num_classes,
                                          input_shape=self.input_shape[1:],

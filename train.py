@@ -28,6 +28,8 @@ def parseargs():
 
     option.add_option('-p', '--project', dest='project', type='string',
                       help='which project', default='mnist_region_classifier')
+    option.add_option('-n', '--net', dest='net', type='string',
+                      help='network', default=None)
     option.add_option('-t', '--time', dest='time', type='string',
                       help='time dir', default=None)
     option.add_option('-g', '--gpus', dest='gpus', type='string',
@@ -93,7 +95,7 @@ def train(project):
                                    decay_steps=TrainConfig.getDefault().decay_steps,
                                    decay_rate=TrainConfig.getDefault().decay_rate,
                                    metrics=TrainBaseConfig.METRICS,
-                                   network=TrainBaseConfig.NEURAL_NETWORK)
+                                   network=ProjectConfig.getDefault().net)
     neural_network = neural_network.build_model()
 
     # step 3
@@ -133,9 +135,9 @@ def train(project):
     # # step 6
     # # freeze grap
     keras2pb.freeze_session(model_dir=TrainConfig.getDefault().final_dir,
-                                      frozen_out_dir=TrainConfig.getDefault().model_dir,
-                                      frozen_graph_filename=TrainConfig.getDefault().project,
-                                      meta_file=TFRecordConfig.getDefault().meta_file)
+                            frozen_out_dir=TrainConfig.getDefault().model_dir,
+                            frozen_graph_filename=TrainConfig.getDefault().project,
+                            meta_file=TFRecordConfig.getDefault().meta_file)
 
     if BaseConfig.DEBUG:
         best_model_timestamp = sorted(os.listdir(TrainConfig.getDefault().train_best_export_dir))[-1]
@@ -151,8 +153,9 @@ def main():
     project = options.project.strip()
     if options.time:
         time = options.time.strip()
+    if options.net:
+        net = options.net.strip()
     gpus = options.gpus.strip()
-
 
     try:
         os.environ['CUDA_VISIBLE_DEVICES'] = gpus
@@ -166,7 +169,7 @@ def main():
         print('exception when set gpus, error = ', e)
 
     # init or update configs
-    ProjectConfig.getDefault().update(project=project, time=time)
+    ProjectConfig.getDefault().update(project=project, time=time, net=net)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TrainConfig.getDefault().update()
