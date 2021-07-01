@@ -16,8 +16,9 @@ from tqdm import tqdm
 
 
 class ParallelFarm:
-    def __init__(self, files, output_dir, label_dict):
+    def __init__(self, files, output_dir, label_dict, test_files):
         self.files = files
+        self.test_files = test_files
         self.output_dir = output_dir
         self.label_dict = label_dict
 
@@ -32,9 +33,13 @@ class ParallelFarm:
         self.group_numbers[TFRecordBaseConfig.VAL] = int(
             len(files) * TFRecordBaseConfig.VALID_SET_RATIO)
 
-        self.group_numbers[TFRecordBaseConfig.TEST] = len(files) - self.group_numbers[
-            TFRecordBaseConfig.TRAIN] - \
-                                                      self.group_numbers[TFRecordBaseConfig.VAL]
+        # self.group_numbers[TFRecordBaseConfig.TEST] = len(files) - self.group_numbers[
+        #     TFRecordBaseConfig.TRAIN] - \
+        #                                               self.group_numbers[TFRecordBaseConfig.VAL]
+        if self.test_files:
+            self.group_numbers[TFRecordBaseConfig.TEST] = len(test_files)
+        else:
+            self.group_numbers[TFRecordBaseConfig.TEST] = 0
 
         self.group_files[TFRecordBaseConfig.TRAIN] = list(self.files)[
                                                      :self.group_numbers[TFRecordBaseConfig.TRAIN]]
@@ -48,15 +53,18 @@ class ParallelFarm:
                                                        TFRecordBaseConfig.VAL]]
         self.batch_list[TFRecordBaseConfig.VAL] = []
 
-        self.group_files[TFRecordBaseConfig.TEST] = list(self.files)[
-                                                    self.group_numbers[TFRecordBaseConfig.TRAIN] +
-                                                    self.group_numbers[
-                                                        TFRecordBaseConfig.VAL]:]
-
+        # self.group_files[TFRecordBaseConfig.TEST] = list(self.files)[
+        #                                             self.group_numbers[TFRecordBaseConfig.TRAIN] +
+        #                                             self.group_numbers[
+        #                                                 TFRecordBaseConfig.VAL]:]
+        if self.test_files:
+            self.group_files[TFRecordBaseConfig.TEST] = list(self.test_files)
+        else:
+            self.group_files[TFRecordBaseConfig.TEST] = list()
         self.batch_list[TFRecordBaseConfig.TEST] = []
 
     def dump_meta_json(self, extra_params=None):
-        with open(TFRecordConfig.getDefault().meta_dir, 'w') as f:
+        with open(TFRecordConfig.getDefault().meta_file, 'w') as f:
             content = {
                 TFRecordBaseConfig.GROUP_NUMBER: self.group_numbers,
                 TFRecordBaseConfig.TRAIN_TFRECORD_LIST: self.batch_list[TFRecordBaseConfig.TRAIN],
@@ -72,20 +80,24 @@ class ParallelFarm:
 class WriteTfrecord(BaseTfrecord):
 
     def __init__(self, dataset_dir=TFRecordConfig.getDefault().source_image_train_dir,
+                 dataset_test_dir=TFRecordConfig.getDefault().source_image_test_dir,
                  tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
+                 tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
                  thread=TFRecordBaseConfig.MAX_THREAD):
         self.dataset_dir = dataset_dir
+        self.dataset_test_dir = dataset_test_dir
         self.tf_records_output_dir = tf_records_output_dir
+        self.tf_records_meta_file = tf_records_meta_file
         self.thread = thread
 
     def work(self, files, tfrecord_name, group_numbers, group, labels_and_index):
         failed = 0
         # write the images and labels to tfrecord format file
         with tf.io.TFRecordWriter(path=tfrecord_name) as writer:
-            for file in tqdm(files, desc=os.path.basename(tfrecord_name)):
-                # for file in files:
+            # for file in tqdm(files, desc=os.path.basename(tfrecord_name)):
+            for file in files:
                 label = labels_and_index[os.path.basename(os.path.dirname(file))]
-                # print("Writing to tfrecord: {}, file:{}, label:{}".format(tfrecord_name, file, label))
+                print("Writing to tfrecord: {}, file:{}, label:{}".format(tfrecord_name, file, label))
                 image = tf.io.decode_jpeg(tf.io.read_file(file))
                 try:
                     tf_example = self.create_image_example(image, label)
@@ -104,12 +116,21 @@ class WriteTfrecord(BaseTfrecord):
         return str(failed)
 
     def dataset_to_tfrecord(self):
+        if os.path.exists(self.tf_records_meta_file):
+            print('tfrecord was exists!!!')
+            return self.tf_records_output_dir
+
         task_name_tfrecords = ".tfrec"
         image_paths, image_labels, labels_and_index = file_utils.get_images_and_labels(self.dataset_dir)
         random.shuffle(image_paths)
         file_utils.create_directory(self.tf_records_output_dir)
 
-        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index)
+        image_test_paths = None
+        if os.path.exists(self.dataset_test_dir):
+            image_test_paths, _, _ = file_utils.get_images_and_labels(self.dataset_test_dir)
+            random.shuffle(image_test_paths)
+
+        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index, image_test_paths)
         executor = ThreadPoolExecutor(max_workers=self.thread)
         tasks = []
 

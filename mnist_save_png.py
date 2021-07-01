@@ -55,7 +55,7 @@ def save_images(train_dir, shape, files):
         for image, (index, l) in custom_zip(images, enumerate(labels[8:])):
             label = number_dict[l]
             out_dir = os.path.join(train_dir, label)
-            filename = '{}-{}.png'.format(label, index)
+            filename = '{}-{}.jpeg'.format(label, index)
             if BaseConfig.DEBUG:
                 print(out_dir, filename)
             file_utils.create_directory(out_dir)
@@ -69,24 +69,25 @@ def main():
     test_image = 't10k-images-idx3-ubyte'
     test_label = 't10k-labels-idx1-ubyte'
 
-    ProjectConfig.getDefault().update('mnist_region_classifier')
+    ProjectConfig.getDefault().update(project='mnist_region_classifier')
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
 
     download_dir = ProjectConfig.getDefault().source_image_download_dir
     extract_dir = ProjectConfig.getDefault().source_image_extract_dir
     train_dir = ProjectConfig.getDefault().source_image_train_dir
+    test_dir = ProjectConfig.getDefault().source_image_test_dir
     shape = (-1, ProjectConfig.getDefault().image_width, ProjectConfig.getDefault().image_height,
              ProjectConfig.getDefault().channels)
 
     # step 1
     # download files
-    download(download_dir, [train_image, train_label, test_image, test_label])
+    # download(download_dir, [train_image, train_label, test_image, test_label])
 
     # step 2
     # extract files
     download_files = [os.path.join(download_dir, file) for file in
                       [train_image, train_label, test_image, test_label]]
-    extract(extract_dir, download_files)
+    # extract(extract_dir, download_files)
 
     # step 3
     # save files
@@ -94,9 +95,15 @@ def main():
     save_images(
         train_dir,
         shape,
-        [(os.path.join(extract_dir, train_image), os.path.join(extract_dir, train_label)),
-         (os.path.join(extract_dir, test_image), os.path.join(extract_dir, test_label))]
+        [(os.path.join(extract_dir, train_image), os.path.join(extract_dir, train_label))]
     )
+
+    save_images(
+        test_dir,
+        shape,
+        [(os.path.join(extract_dir, test_image), os.path.join(extract_dir, test_label))]
+    )
+
 
 if __name__ == '__main__':
     try:

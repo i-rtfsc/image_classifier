@@ -46,7 +46,7 @@ class BaseTfrecord(object):
     def prepare_sample(self, features):
         image = tf.image.resize(features[TFRecordBaseConfig.IMAGE], size=(TFRecordConfig.getDefault().image_size))
         label = tf.one_hot(features[TFRecordBaseConfig.LABEL], self.num_classes)
-        # label = features[TFRecordBaseConfig.Label]
+        # label = features[TFRecordBaseConfig.LABEL]
         return image, label
 
     def parse_tfrecord_fn(self, example):

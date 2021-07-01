@@ -4,95 +4,41 @@
 
 import tensorflow as tf
 
+from models.base_model import BaseModel
 
-class MobileNetV1(tf.keras.Model):
-    def __init__(self):
-        super(MobileNetV1, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(filters=32,
-                                            kernel_size=(3, 3),
-                                            strides=2,
-                                            padding="same")
-        self.separable_conv_1 = tf.keras.layers.SeparableConv2D(filters=64,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
-                                                                padding="same")
 
-        self.separable_conv_2 = tf.keras.layers.SeparableConv2D(filters=128,
-                                                                kernel_size=(3, 3),
-                                                                strides=2,
+class MobileNetV1(BaseModel):
+    def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
+                 output_tensor_name='Softmax'):
+        self.input_layer = tf.keras.layers.InputLayer(input_shape=input_shape, name=input_tensor_name)
+        self.conv1 = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), strides=2, padding="same")
+        self.separable_conv_1 = tf.keras.layers.SeparableConv2D(filters=64, kernel_size=(3, 3), strides=1,
                                                                 padding="same")
-        self.separable_conv_3 = tf.keras.layers.SeparableConv2D(filters=128,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
+        self.separable_conv_2 = tf.keras.layers.SeparableConv2D(filters=128, kernel_size=(3, 3), strides=2,
                                                                 padding="same")
-        self.separable_conv_4 = tf.keras.layers.SeparableConv2D(filters=256,
-                                                                kernel_size=(3, 3),
-                                                                strides=2,
+        self.separable_conv_3 = tf.keras.layers.SeparableConv2D(filters=128, kernel_size=(3, 3), strides=1,
                                                                 padding="same")
-        self.separable_conv_5 = tf.keras.layers.SeparableConv2D(filters=256,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
+        self.separable_conv_4 = tf.keras.layers.SeparableConv2D(filters=256, kernel_size=(3, 3), strides=2,
                                                                 padding="same")
-        self.separable_conv_6 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                kernel_size=(3, 3),
-                                                                strides=2,
+        self.separable_conv_5 = tf.keras.layers.SeparableConv2D(filters=256, kernel_size=(3, 3), strides=1,
                                                                 padding="same")
-        self.separable_conv_7 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
+        self.separable_conv_6 = tf.keras.layers.SeparableConv2D(filters=512, kernel_size=(3, 3), strides=2,
                                                                 padding="same")
-        self.separable_conv_8 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
+        self.separable_conv_7 = tf.keras.layers.SeparableConv2D(filters=512, kernel_size=(3, 3), strides=1,
                                                                 padding="same")
-        self.separable_conv_9 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                kernel_size=(3, 3),
-                                                                strides=1,
+        self.separable_conv_8 = tf.keras.layers.SeparableConv2D(filters=512,kernel_size=(3, 3), strides=1,
                                                                 padding="same")
-        self.separable_conv_10 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                 kernel_size=(3, 3),
-                                                                 strides=1,
+        self.separable_conv_9 = tf.keras.layers.SeparableConv2D(filters=512, kernel_size=(3, 3), strides=1,
+                                                                padding="same")
+        self.separable_conv_10 = tf.keras.layers.SeparableConv2D(filters=512, kernel_size=(3, 3), strides=1,
                                                                  padding="same")
-        self.separable_conv_11 = tf.keras.layers.SeparableConv2D(filters=512,
-                                                                 kernel_size=(3, 3),
-                                                                 strides=1,
+        self.separable_conv_11 = tf.keras.layers.SeparableConv2D(filters=512, kernel_size=(3, 3), strides=1,
                                                                  padding="same")
-
-        self.separable_conv_12 = tf.keras.layers.SeparableConv2D(filters=1024,
-                                                                 kernel_size=(3, 3),
-                                                                 strides=2,
+        self.separable_conv_12 = tf.keras.layers.SeparableConv2D(filters=1024, kernel_size=(3, 3), strides=2,
                                                                  padding="same")
-        self.separable_conv_13 = tf.keras.layers.SeparableConv2D(filters=1024,
-                                                                 kernel_size=(3, 3),
-                                                                 strides=1,
+        self.separable_conv_13 = tf.keras.layers.SeparableConv2D(filters=1024, kernel_size=(3, 3), strides=1,
                                                                  padding="same")
-
         # self.avg_pool = tf.keras.layers.AveragePooling2D(pool_size=(7, 7), strides=1)
-        # self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax)
+        self.avg_pool = tf.keras.layers.GlobalAveragePooling2D()
+        self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
 
-    def call(self, inputs, training=None, mask=None):
-        x = self.conv1(inputs)
-        x = self.separable_conv_1(x)
-        x = self.separable_conv_2(x)
-        x = self.separable_conv_3(x)
-        x = self.separable_conv_4(x)
-        x = self.separable_conv_5(x)
-        x = self.separable_conv_6(x)
-        x = self.separable_conv_7(x)
-        x = self.separable_conv_8(x)
-        x = self.separable_conv_9(x)
-        x = self.separable_conv_10(x)
-        x = self.separable_conv_11(x)
-        x = self.separable_conv_12(x)
-        x = self.separable_conv_13(x)
-
-        # x = self.avg_pool(x)
-        # x = self.fc(x)
-
-        return x
-
-    def get_avg_pool_and_fc(self, num_classes, output_tensor_name):
-        avg_pool = tf.keras.layers.GlobalAveragePooling2D()
-        fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
-
-        return avg_pool, fc

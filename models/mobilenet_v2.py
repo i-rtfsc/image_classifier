@@ -5,6 +5,8 @@
 
 import tensorflow as tf
 
+from models.base_model import BaseModel
+
 
 class BottleNeck(tf.keras.layers.Layer):
     def __init__(self, input_channels, output_channels, expansion_factor, stride):
@@ -63,78 +65,23 @@ def build_bottleneck(t, in_channel_num, out_channel_num, n, s):
     return bottleneck
 
 
-class MobileNetV2(tf.keras.Model):
-    def __init__(self):
-        super(MobileNetV2, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(filters=32,
-                                            kernel_size=(3, 3),
-                                            strides=2,
+class MobileNetV2(BaseModel):
+    def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
+                 output_tensor_name='Softmax'):
+        self.input_layer = tf.keras.layers.InputLayer(input_shape=input_shape, name=input_tensor_name)
+        self.conv1 = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), strides=2,
                                             padding="same")
-        self.bottleneck_1 = build_bottleneck(t=1,
-                                             in_channel_num=32,
-                                             out_channel_num=16,
-                                             n=1,
-                                             s=1)
-        self.bottleneck_2 = build_bottleneck(t=6,
-                                             in_channel_num=16,
-                                             out_channel_num=24,
-                                             n=2,
-                                             s=2)
-        self.bottleneck_3 = build_bottleneck(t=6,
-                                             in_channel_num=24,
-                                             out_channel_num=32,
-                                             n=3,
-                                             s=2)
-        self.bottleneck_4 = build_bottleneck(t=6,
-                                             in_channel_num=32,
-                                             out_channel_num=64,
-                                             n=4,
-                                             s=2)
-        self.bottleneck_5 = build_bottleneck(t=6,
-                                             in_channel_num=64,
-                                             out_channel_num=96,
-                                             n=3,
-                                             s=1)
-        self.bottleneck_6 = build_bottleneck(t=6,
-                                             in_channel_num=96,
-                                             out_channel_num=160,
-                                             n=3,
-                                             s=2)
-        self.bottleneck_7 = build_bottleneck(t=6,
-                                             in_channel_num=160,
-                                             out_channel_num=320,
-                                             n=1,
-                                             s=1)
-
-        self.conv2 = tf.keras.layers.Conv2D(filters=1280,
-                                            kernel_size=(1, 1),
-                                            strides=1,
-                                            padding="same")
+        self.bottleneck_1 = build_bottleneck(t=1, in_channel_num=32, out_channel_num=16, n=1, s=1)
+        self.bottleneck_2 = build_bottleneck(t=6, in_channel_num=16, out_channel_num=24, n=2, s=2)
+        self.bottleneck_3 = build_bottleneck(t=6, in_channel_num=24, out_channel_num=32, n=3, s=2)
+        self.bottleneck_4 = build_bottleneck(t=6, in_channel_num=32, out_channel_num=64, n=4, s=2)
+        self.bottleneck_5 = build_bottleneck(t=6, in_channel_num=64, out_channel_num=96, n=3, s=1)
+        self.bottleneck_6 = build_bottleneck(t=6, in_channel_num=96, out_channel_num=160, n=3, s=2)
+        self.bottleneck_7 = build_bottleneck(t=6, in_channel_num=160, out_channel_num=320, n=1, s=1)
+        self.conv2 = tf.keras.layers.Conv2D(filters=1280, kernel_size=(1, 1), strides=1, padding="same")
         # self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(7, 7))
-        # self.conv3 = tf.keras.layers.Conv2D(filters=NUM_CLASSES,
-        #                                     kernel_size=(1, 1),
-        #                                     strides=1,
-        #                                     padding="same",
+        # self.conv3 = tf.keras.layers.Conv2D(filters=num_classes, kernel_size=(1, 1), strides=1, padding="same",
         #                                     activation=tf.keras.activations.softmax)
-
-    def call(self, inputs, training=None, mask=None):
-        x = self.conv1(inputs)
-        x = self.bottleneck_1(x, training=training)
-        x = self.bottleneck_2(x, training=training)
-        x = self.bottleneck_3(x, training=training)
-        x = self.bottleneck_4(x, training=training)
-        x = self.bottleneck_5(x, training=training)
-        x = self.bottleneck_6(x, training=training)
-        x = self.bottleneck_7(x, training=training)
-
-        x = self.conv2(x)
-
-        # x = self.avgpool(x)
-        # x = self.conv3(x)
-
-        return x
-
-    def get_avg_pool_and_fc(self, num_classes, output_tensor_name):
-        avg_pool = tf.keras.layers.GlobalAveragePooling2D()
-        fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
-        return avg_pool, fc
+        self.avg_pool = tf.keras.layers.GlobalAveragePooling2D()
+        self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax,
+                                        name=output_tensor_name)

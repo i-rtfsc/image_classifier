@@ -25,7 +25,7 @@ import os
 import re
 import sys
 import time
-
+from datetime import datetime
 import numpy as np
 
 from tensorflow.core.framework import summary_pb2
@@ -1320,7 +1320,9 @@ class ModelCheckpoint(Callback):
             logs = tf_utils.sync_to_numpy_or_python_type(logs)
             self.epochs_since_last_save = 0
             filepath = self._get_file_path(epoch, logs)
-            model_filepath = os.path.join(self.model_filepath, time.strftime("%y%m%d%H%M", time.localtime()))
+
+            model_filepath = os.path.join(self.model_filepath, time.strftime("%Y%m%d%H%M", time.localtime()))
+            saved_model_name = 'saved_model.h5'
             try:
                 if self.save_best_only:
                     current = logs.get(self.monitor)
@@ -1341,7 +1343,9 @@ class ModelCheckpoint(Callback):
                                     filepath, overwrite=True, save_format='tf')
 
                                 # save the model
-                                tf.keras.models.save_model(self.model, model_filepath)
+                                # tf.keras.models.save_model(self.model, model_filepath)
+                                self.model.save(model_filepath, save_format='tf')
+                                # self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
                             else:
                                 self.model.save(filepath, overwrite=True, options=self._options)
                         else:
@@ -1358,7 +1362,9 @@ class ModelCheckpoint(Callback):
                             filepath, overwrite=True, save_format='tf')
 
                         # save the model
-                        tf.keras.models.save_model(self.model, model_filepath)
+                        # tf.keras.models.save_model(self.model, model_filepath)
+                        self.model.save(model_filepath, save_format='tf')
+                        # self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
                     else:
                         self.model.save(filepath, overwrite=True, options=self._options)
 

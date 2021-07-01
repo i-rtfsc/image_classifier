@@ -9,6 +9,7 @@ import sys
 
 import tensorflow as tf
 
+import keras2pb
 from base import time_utils
 from base.log_utils import TerminalLogger
 from callbacks import TrainCallback
@@ -27,6 +28,8 @@ def parseargs():
 
     option.add_option('-p', '--project', dest='project', type='string',
                       help='which project', default='mnist_region_classifier')
+    option.add_option('-t', '--time', dest='time', type='string',
+                      help='time dir', default=None)
     option.add_option('-g', '--gpus', dest='gpus', type='string',
                       help='gpus', default='0,1')
     parser.add_option_group(option)
@@ -59,7 +62,9 @@ def train(project):
     start_time = time_utils.get_current()
 
     writeTfrecord = WriteTfrecord(dataset_dir=TFRecordConfig.getDefault().source_image_train_dir,
+                                  dataset_test_dir=TFRecordConfig.getDefault().source_image_test_dir,
                                   tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
+                                  tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
                                   thread=TFRecordBaseConfig.MAX_THREAD)
     out_dir = writeTfrecord.dataset_to_tfrecord()
     send_msg_to_bot(start_time, '路径 = {}'.format(out_dir))
@@ -89,7 +94,7 @@ def train(project):
                                    decay_rate=TrainConfig.getDefault().decay_rate,
                                    metrics=TrainBaseConfig.METRICS,
                                    network=TrainBaseConfig.NEURAL_NETWORK)
-    neural_network = neural_network.get_keras_network()
+    neural_network = neural_network.build_model()
 
     # step 3
     # train model
@@ -118,15 +123,19 @@ def train(project):
     neural_network.save_weights(filepath=TrainConfig.getDefault().final_dir, save_format='tf')
     # save final model
     tf.keras.models.save_model(neural_network, TrainConfig.getDefault().final_dir)
+    neural_network.save(TrainConfig.getDefault().final_dir, save_format='tf')
+    # neural_network.save(os.path.join(TrainConfig.getDefault().final_dir, 'saved_model.h5'), save_format='h5')
 
-    # TODO
-    # step 6
-    # freeze grap
-    # freeze_graph.freeze_pb_from_model(model_path=TrainConfig.getDefault().train_best_export_dir,
-    #                                   frozen_out_path=TrainConfig.getDefault().model_dir,
-    #                                   frozen_graph_filename=TrainConfig.getDefault().project)
     send_msg_to_bot(start_time,
                     '训练完成\ntest loss & test acc = {}\n模型路径 = {}'.format(results, TrainConfig.getDefault().model_dir))
+
+    # # TODO
+    # # step 6
+    # # freeze grap
+    keras2pb.freeze_session(model_dir=TrainConfig.getDefault().final_dir,
+                                      frozen_out_dir=TrainConfig.getDefault().model_dir,
+                                      frozen_graph_filename=TrainConfig.getDefault().project,
+                                      meta_file=TFRecordConfig.getDefault().meta_file)
 
     if BaseConfig.DEBUG:
         best_model_timestamp = sorted(os.listdir(TrainConfig.getDefault().train_best_export_dir))[-1]
@@ -137,9 +146,13 @@ def train(project):
 
 
 def main():
+    time = None
     (options, args) = parseargs()
     project = options.project.strip()
+    if options.time:
+        time = options.time.strip()
     gpus = options.gpus.strip()
+
 
     try:
         os.environ['CUDA_VISIBLE_DEVICES'] = gpus
@@ -153,7 +166,7 @@ def main():
         print('exception when set gpus, error = ', e)
 
     # init or update configs
-    ProjectConfig.getDefault().update(project)
+    ProjectConfig.getDefault().update(project=project, time=time)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TrainConfig.getDefault().update()

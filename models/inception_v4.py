@@ -4,6 +4,8 @@
 
 
 import tensorflow as tf
+
+from models.base_model import BaseModel
 from models.inception_modules import Stem, InceptionBlockA, InceptionBlockB, \
     InceptionBlockC, ReductionA, ReductionB
 
@@ -29,9 +31,11 @@ def build_inception_block_c(n):
     return block
 
 
-class InceptionV4(tf.keras.Model):
-    def __init__(self):
-        super(InceptionV4, self).__init__()
+class InceptionV4(BaseModel):
+    def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
+                 output_tensor_name='Softmax'):
+        self.input_layer = tf.keras.layers.InputLayer(input_shape=input_shape, name=input_tensor_name)
+        # self.stem = Stem(input_shape)
         self.stem = Stem()
         self.inception_a = build_inception_block_a(4)
         self.reduction_a = ReductionA(k=192, l=224, m=256, n=384)
@@ -41,24 +45,6 @@ class InceptionV4(tf.keras.Model):
         self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(8, 8))
         self.dropout = tf.keras.layers.Dropout(rate=0.2)
         self.flat = tf.keras.layers.Flatten()
-        # self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax)
+        self.avg_pool = tf.keras.layers.GlobalAveragePooling2D()
+        self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
 
-    def call(self, inputs, training=True, mask=None):
-        x = self.stem(inputs, training=training)
-        x = self.inception_a(x, training=training)
-        x = self.reduction_a(x, training=training)
-        x = self.inception_b(x, training=training)
-        x = self.reduction_b(x, training=training)
-        x = self.inception_c(x, training=training)
-        # x = self.avgpool(x)
-        # x = self.dropout(x, training=training)
-        # x = self.flat(x)
-        # x = self.fc(x)
-
-        return x
-
-    def get_avg_pool_and_fc(self, num_classes, output_tensor_name):
-        avg_pool = tf.keras.layers.GlobalAveragePooling2D()
-        fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax, name=output_tensor_name)
-
-        return avg_pool, fc

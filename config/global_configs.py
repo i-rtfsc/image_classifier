@@ -30,7 +30,7 @@ class BaseConfig(object):
 
     def update(self, *args, **kwargs):
         if BaseConfig.DEBUG:
-            print('base onfig args = ', args[0])
+            print('base onfig args =', args[0])
         pass
 
     def __str__(self):
@@ -49,14 +49,23 @@ class ProjectConfig(BaseConfig):
         self.channels = None
         self.image_size = [self.image_width, self.image_height]
         self.source_image_train_dir = None
+        self.source_image_test_dir = None
         self.source_image_download_dir = None
         self.source_image_extract_dir = None
-        print('project config class init, time = ', self.time)
+        print('project config class init, time =', self.time)
 
+    # kwargs:
+    # time
+    # project
     def update(self, *args, **kwargs):
-        self.project = args[0]
+        for key, value in kwargs.items():
+            if 'time' == key and value is not None:
+                self.time = value
+            if 'project' == key and value is not None:
+                self.project = value
+
         self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
-        print('project config update config from cfg, project name = ', self.project)
+        print('project config update config from cfg, project name =', self.project, ' time =',self.time)
         try:
             base_config = configparser.ConfigParser()
             file = os.path.join(self.root_dir, 'config', 'project.cfg')
@@ -67,6 +76,7 @@ class ProjectConfig(BaseConfig):
             self.channels = int(configs['CHANNELS'])
             self.image_size = [self.image_width, self.image_height]
             self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
+            self.source_image_test_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TEST'])
             self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
             self.source_image_extract_dir = configs['SOURCE_IMAGE_EXTRACT']
         except Exception as e:
@@ -84,9 +94,9 @@ class UserConfig(BaseConfig):
                 config = configparser.ConfigParser()
                 config.read(os.path.join(ProjectConfig.getDefault().root_dir, 'config', 'secret.cfg'))
                 self.bot = config['USER']['BOT']
-                print('user config update , bot = ', self.bot)
+                print('user config update , bot =', self.bot)
             except Exception as e:
-                print('exception when parse, error = ', e)
+                print('exception when parse, error ', e)
 
 
 class TFRecordBaseConfig(BaseConfig):
@@ -96,8 +106,9 @@ class TFRecordBaseConfig(BaseConfig):
     # 每一个tfrecord的图片文件总数
     MAX_PER_FILE = 4096
     # train/valid/test数据的比例
-    TRAIN_SET_RATIO = 0.8
+    TRAIN_SET_RATIO = 0.9
     VALID_SET_RATIO = 0.1
+    # test改成单独放在一个测试文件夹
     TEST_SET_RATIO = 1 - TRAIN_SET_RATIO - VALID_SET_RATIO
     # 生成tfrecord时的线程数
     MAX_THREAD = 20
@@ -126,12 +137,13 @@ class TFRecordConfig(TFRecordBaseConfig):
         print('tfrecord init')
         # 在update函数更新
         self.source_image_train_dir = None
+        self.source_image_test_dir = None
         self.image_width = None
         self.image_height = None
         self.channels = None
         self.image_size = None
         self.tfrecord_dir = None
-        self.meta_dir = None
+        self.meta_file = None
         self.train_tfrecord_list = list()
         self.val_tfrecord_list = list()
         self.test_tfrecord_list = list()
@@ -140,21 +152,22 @@ class TFRecordConfig(TFRecordBaseConfig):
 
     def update(self, *args, **kwargs):
         action = args[0]
-        print('update tfrecord config, action = ', action)
+        print('update tfrecord config, action =', action)
         while switch(action):
             if case(self.UPDATE_BASE):
                 self.source_image_train_dir = ProjectConfig.getDefault().source_image_train_dir
+                self.source_image_test_dir = ProjectConfig.getDefault().source_image_test_dir
                 # image shape
                 self.image_width = ProjectConfig.getDefault().image_width
                 self.image_height = ProjectConfig.getDefault().image_height
                 self.channels = ProjectConfig.getDefault().channels
                 self.image_size = [self.image_width, self.image_height]
                 self.tfrecord_dir = os.path.join(ProjectConfig.getDefault().out, 'tfrecord')
-                self.meta_dir = os.path.join(self.tfrecord_dir, self.META_FILE)
+                self.meta_file = os.path.join(self.tfrecord_dir, self.META_FILE)
                 break
 
             if case(self.UPDATE_DATASET):
-                with open(self.meta_dir, 'r') as f:
+                with open(self.meta_file, 'r') as f:
                     meta = json.load(f)
                     self.labels = meta[self.TRAIN_LABELS]
 
@@ -172,7 +185,7 @@ class TFRecordConfig(TFRecordBaseConfig):
 
 
 class TrainBaseConfig(BaseConfig):
-    NEURAL_NETWORK = CNNNetWork.MOBILE_NET_V2
+    NEURAL_NETWORK = CNNNetWork.INCEPTION_RESNET_V1
     INPUT_TENSOR_NAME = 'input'
     OUTPUT_TENSOR_NAME = 'Softmax'
     METRICS = ['accuracy']
@@ -236,4 +249,4 @@ class TrainConfig(TrainBaseConfig):
             self.min_delta = float(configs['MIN_DELTA'])
             self.patience = int(configs['PATIENCE'])
         except Exception as e:
-            print('exception when parse, error = ', e)
+            print('exception when parse, error =', e)
