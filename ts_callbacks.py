@@ -1345,7 +1345,7 @@ class ModelCheckpoint(Callback):
                                 # save the model
                                 # tf.keras.models.save_model(self.model, model_filepath)
                                 self.model.save(model_filepath, save_format='tf')
-                                # self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
+                                self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
                             else:
                                 self.model.save(filepath, overwrite=True, options=self._options)
                         else:
@@ -1364,7 +1364,7 @@ class ModelCheckpoint(Callback):
                         # save the model
                         # tf.keras.models.save_model(self.model, model_filepath)
                         self.model.save(model_filepath, save_format='tf')
-                        # self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
+                        self.model.save(os.path.join(model_filepath, saved_model_name), save_format='h5')
                     else:
                         self.model.save(filepath, overwrite=True, options=self._options)
 

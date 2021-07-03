@@ -18,6 +18,7 @@ from models.inception_resnet_v2 import InceptionResNetV2
 from models.inception_v4 import InceptionV4
 from models.simple_net import SimpleNet
 
+from models.keras.mobile_net_v0 import KMobileNetV0
 
 class NeuralNetwork(object):
 
@@ -46,9 +47,9 @@ class NeuralNetwork(object):
         while switch(self.network):
             if case(CNNNetWork.SIMPLE_NET):
                 base_model = SimpleNet(num_classes=self.num_classes,
-                                         input_shape=self.input_shape[1:],
-                                         input_tensor_name=self.input_tensor_name,
-                                         output_tensor_name=self.output_tensor_name)
+                                       input_shape=self.input_shape[1:],
+                                       input_tensor_name=self.input_tensor_name,
+                                       output_tensor_name=self.output_tensor_name)
                 break
 
             if case(CNNNetWork.MOBILE_NET_V0):
@@ -140,7 +141,7 @@ class NeuralNetwork(object):
         # create the base pre-trained model
         while switch(self.network):
             if case(CNNNetWork.MOBILE_NET_V1):
-                keras_model = tf.keras.applications.MobileNet(input_tensor=input_layer, weights=None,
+                keras_model = KMobileNetV0(input_tensor=input_layer, weights=None,
                                                               include_top=False)
                 break
 
@@ -175,26 +176,17 @@ class NeuralNetwork(object):
         avg_pool = tf.keras.layers.GlobalAveragePooling2D()(keras_model.output)
         # let's add a fully-connected layer
         fc = tf.keras.layers.Dense(1024, activation='relu')(avg_pool)
-        # # and a logistic layer
-        # predictions = tf.keras.layers.Dense(self.num_classes, activation='softmax', name=self.output_tensor_name)(fc)
-        #
-        # # this is the model we will train
-        # network = tf.keras.Model(inputs=keras_model.input, outputs=predictions,
-        #                          name=self.network.name.lower())
-        if BaseConfig.DEBUG:
-            # and a logistic layer
-            predictions = tf.keras.layers.Dense(self.num_classes, activation='softmax')(fc)
-            # this is the model we will train
-            network = tf.keras.Model(inputs=keras_model.input, outputs=predictions)
-            network.summary()
-        else:
-            # and a logistic layer
-            predictions = tf.keras.layers.Dense(self.num_classes, activation='softmax', name=self.output_tensor_name)(
-                fc)
+        # and a logistic layer
+        predictions = tf.keras.layers.Dense(self.num_classes, activation='softmax', name=self.output_tensor_name)(fc)
 
-            # this is the model we will train
-            network = tf.keras.Model(inputs=keras_model.input, outputs=predictions,
-                                     name=self.network.name.lower())
+        # this is the model we will train
+        network = tf.keras.Model(inputs=keras_model.input, outputs=predictions,
+                                 name=self.network.name.lower())
+
+        # network = tf.keras.models.Sequential(keras_model.output)
+
+        if BaseConfig.DEBUG:
+            network.summary()
 
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=self.initial_learning_rate,

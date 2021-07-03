@@ -8,8 +8,12 @@ import shutil
 import tensorflow as tf
 
 
+# import tensorflow.compat.v1 as tf  # for TF 2
+# tf.disable_v2_behavior()  # for TF 2
+
+
 def freeze_session(model_dir='', frozen_out_dir='', frozen_graph_filename='region_classifier', meta_file=None,
-                   debug=True, clear_devices=True):
+                   clear_devices=True, debug=True):
     final_model_file = None
     for model in os.listdir(model_dir):
         # if model.endswith('.h5'):
@@ -45,10 +49,11 @@ def freeze_session(model_dir='', frozen_out_dir='', frozen_graph_filename='regio
 
         input_graph_def = graph.as_graph_def()
         for node in input_graph_def.node:
-            print('node:', node.name)
+            if debug:
+                print('--->', node.name)
 
         if debug:
-            print("len node ", len(input_graph_def.node))
+            print("len node =", len(input_graph_def.node))
 
         if clear_devices:
             for node in input_graph_def.node:
@@ -56,19 +61,20 @@ def freeze_session(model_dir='', frozen_out_dir='', frozen_graph_filename='regio
         frozen_graph = tf.compat.v1.graph_util.convert_variables_to_constants(session, input_graph_def,
                                                                               output_names)
 
-        # outgraph = tf.compat.v1.graph_util.remove_training_nodes(frozen_graph)
-        # print("-" * 50)
-        # for node in outgraph.node:
-        #     print('node:', node.name)
-        # print("length of  node", len(outgraph.node))
+        outgraph = tf.compat.v1.graph_util.remove_training_nodes(frozen_graph)
+        if debug:
+            print("-" * 50)
+        for node in outgraph.node:
+            if debug:
+                print('--->>>', node.name)
+        if debug:
+            print("length of  node", len(outgraph.node))
         tf.io.write_graph(frozen_graph, frozen_out_dir, '{}.pb'.format(frozen_graph_filename), as_text=False)
 
         if not os.path.exists(meta_file):
             print('meta file was none, does not need copy')
         else:
             shutil.copy(meta_file, frozen_out_dir)
-
-        # return outgraph
 
 
 if __name__ == '__main__':

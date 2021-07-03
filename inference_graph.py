@@ -40,7 +40,6 @@ def load_graph(file_path):
     return graph, graph_nodes
 
 
-# def work_impl(frozen_func, files, labels, width, height, channel, task_name, debug=False):
 def work_impl(sess, input_node, output_node, files, labels, width, height, channel, task_name, debug=False):
     # for file in tqdm(files, desc=task_name):
     # print(labels)
@@ -57,47 +56,20 @@ def work_impl(sess, input_node, output_node, files, labels, width, height, chann
         # # Flatten the image
         # # image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
         # image = image.reshape((1,  width, height, channel))
-
         image = np.array(Image.open(file)).reshape(1, width, height, channel) / 255.0
 
-        #logits = sess.run(output_node, feed_dict={input_node: image.astype(dtype=np.float32)})
         logits = sess.run(output_node, feed_dict={input_node: image})
         index = np.argmax(logits)
         ai_label = labels[str(index)]
         if debug:
-            # print('prediction reference =', logits, ' index =', index)
-            print('real label =', real_label, ', ai label =', ai_label)
+            print('real label =', real_label, ', ai label =', ai_label, ' , file =', file)
 
         if real_label == ai_label:
-            print('success')
             global success
             success += 1
         else:
-            print('error')
             global fails
             fails += 1
-
-        # image = cv2.imread(file)
-        # image = cv2.resize(image, (width, height))
-        # # scale image data
-        # image = image.astype("float32") / 255.0
-        # # Flatten the image
-        # image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
-        # # image = image.reshape((1,  width, height, channel))
-        #
-        # predictions = frozen_func(tf.constant(image))
-        # index = np.argmax(predictions[0].numpy())
-        # ai_label = labels[str(index)]
-        # if debug:
-        #     print('prediction reference = ', predictions[0].numpy(), ' index = ', index)
-        #     print('real label = ', real_label, ' ai label = ', ai_label)
-        #
-        # if real_label == ai_label:
-        #     print('success')
-        #     success += 1
-        # else:
-        #     print('error')
-        #     fails += 1
 
 
 def inference(model_dir='', test_dir='',
@@ -128,14 +100,15 @@ def inference(model_dir='', test_dir='',
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     graph, graph_nodes = load_graph(frozen_graph_file)
-    print("num nodes", len(graph_nodes))
+    # print("num nodes", len(graph_nodes))
     for node in graph_nodes:
-        print('node:', node.name)
+        pass
+        # print('node:', node.name)
 
     input_node = graph.get_tensor_by_name(input_tensor_name)
-    print("input_node:", input_node)
+    # print("input_node:", input_node)
     output_node = graph.get_tensor_by_name(output_tensor_name)
-    print("output_node:", output_node)
+    # print("output_node:", output_node)
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.compat.v1.Session(graph=graph, config=config) as sess:
@@ -150,7 +123,8 @@ def inference(model_dir='', test_dir='',
                 for sub_file in sorted(os.listdir(os.path.join(test_dir, file))):
                     files.append(os.path.join(test_dir, file, sub_file))
 
-        random.shuffle(files)
+        # random.shuffle(files)
+        sorted(files)
         executor = ThreadPoolExecutor(max_workers=20)
 
         totals = len(files)
@@ -185,9 +159,9 @@ def inference(model_dir='', test_dir='',
             except Exception as exc:
                 print('exception = ', exc)
 
-
         print('totals =', totals, ' , success =', success, ' , fails =', fails)
         print('percent=', format(success / totals, '.4f'))
+
 
 if __name__ == '__main__':
     try:
@@ -200,7 +174,7 @@ if __name__ == '__main__':
                   # input_tensor_name='x:0',
                   # output_tensor_name='Identity:0',
                   input_tensor_name='input:0',
-                  output_tensor_name='dense_1/Softmax:0',
+                  output_tensor_name='Softmax/Softmax:0',
                   width=28, height=28, channel=1,
                   debug=True)
     except KeyboardInterrupt:

@@ -6,9 +6,11 @@
 import os
 import optparse
 import sys
+import shutil
 
 import tensorflow as tf
 
+import inference_model
 import keras2pb
 from base import time_utils
 from base.log_utils import TerminalLogger
@@ -96,7 +98,7 @@ def train(project):
                                    decay_rate=TrainConfig.getDefault().decay_rate,
                                    metrics=TrainBaseConfig.METRICS,
                                    network=ProjectConfig.getDefault().net)
-    neural_network = neural_network.build_model()
+    neural_network = neural_network.get_keras_network()
 
     # step 3
     # train model
@@ -126,7 +128,17 @@ def train(project):
     # save final model
     tf.keras.models.save_model(neural_network, TrainConfig.getDefault().final_dir)
     neural_network.save(TrainConfig.getDefault().final_dir, save_format='tf')
-    # neural_network.save(os.path.join(TrainConfig.getDefault().final_dir, 'saved_model.h5'), save_format='h5')
+    neural_network.save(os.path.join(TrainConfig.getDefault().final_dir, 'saved_model.h5'), save_format='h5')
+    shutil.copy(TFRecordConfig.getDefault().meta_file, TrainConfig.getDefault().final_dir)
+
+    # inference model
+    inference_model.inference(model_dir=TrainConfig.getDefault().final_dir,
+                              test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+                              width=TFRecordConfig.getDefault().image_width,
+                              height=TFRecordConfig.getDefault().image_height,
+                              channel=TFRecordConfig.getDefault().channels,
+                              debug=True
+                              )
 
     send_msg_to_bot(start_time,
                     '训练完成\ntest loss & test acc = {}\n模型路径 = {}'.format(results, TrainConfig.getDefault().model_dir))
@@ -138,6 +150,9 @@ def train(project):
                             frozen_out_dir=TrainConfig.getDefault().model_dir,
                             frozen_graph_filename=TrainConfig.getDefault().project,
                             meta_file=TFRecordConfig.getDefault().meta_file)
+
+    # TODO
+    # inference graph
 
     if BaseConfig.DEBUG:
         best_model_timestamp = sorted(os.listdir(TrainConfig.getDefault().train_best_export_dir))[-1]

@@ -68,9 +68,9 @@ def build_bottleneck(t, in_channel_num, out_channel_num, n, s):
 class MobileNetV2(BaseModel):
     def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
                  output_tensor_name='Softmax'):
-        self.input_layer = tf.keras.layers.InputLayer(input_shape=input_shape, name=input_tensor_name)
-        self.conv1 = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), strides=2,
-                                            padding="same")
+        self.input_layer = self.InputLayer(input_shape=input_shape, name=input_tensor_name)
+        self.conv1 = self.Conv2D(filters=32, kernel_size=(3, 3), strides=2,
+                                 padding="same")
         self.bottleneck_1 = build_bottleneck(t=1, in_channel_num=32, out_channel_num=16, n=1, s=1)
         self.bottleneck_2 = build_bottleneck(t=6, in_channel_num=16, out_channel_num=24, n=2, s=2)
         self.bottleneck_3 = build_bottleneck(t=6, in_channel_num=24, out_channel_num=32, n=3, s=2)
@@ -78,10 +78,10 @@ class MobileNetV2(BaseModel):
         self.bottleneck_5 = build_bottleneck(t=6, in_channel_num=64, out_channel_num=96, n=3, s=1)
         self.bottleneck_6 = build_bottleneck(t=6, in_channel_num=96, out_channel_num=160, n=3, s=2)
         self.bottleneck_7 = build_bottleneck(t=6, in_channel_num=160, out_channel_num=320, n=1, s=1)
-        self.conv2 = tf.keras.layers.Conv2D(filters=1280, kernel_size=(1, 1), strides=1, padding="same")
-        # self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(7, 7))
-        # self.conv3 = tf.keras.layers.Conv2D(filters=num_classes, kernel_size=(1, 1), strides=1, padding="same",
+        self.conv2 = self.Conv2D(filters=1280, kernel_size=(1, 1), strides=1, padding="same")
+        # self.avgpool = self.AveragePooling2D(pool_size=(7, 7))
+        # self.conv3 = self.Conv2D(filters=num_classes, kernel_size=(1, 1), strides=1, padding="same",
         #                                     activation=tf.keras.activations.softmax)
-        self.avg_pool = tf.keras.layers.GlobalAveragePooling2D()
-        self.fc = tf.keras.layers.Dense(units=num_classes, activation=tf.keras.activations.softmax,
-                                        name=output_tensor_name)
+        self.avg_pool = self.GlobalAveragePooling2D()
+        self.fc = self.Dense(units=num_classes, activation=tf.keras.activations.softmax,
+                             name=output_tensor_name)
