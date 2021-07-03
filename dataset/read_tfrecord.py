@@ -16,8 +16,8 @@ class ReadTfrecord(BaseTfrecord):
         self.num_classes = num_classes
 
     def get_datasets(self):
-        train_dataset = self.get_dataset_from_tfrecord(self.train_tfrecord_list)
-        valid_dataset = self.get_dataset_from_tfrecord(self.val_tfrecord_list)
-        test_dataset = self.get_dataset_from_tfrecord(self.test_tfrecord_list)
+        train_dataset = lambda: self.get_dataset_from_tfrecord(self.train_tfrecord_list)
+        valid_dataset = lambda: self.get_dataset_from_tfrecord(self.val_tfrecord_list)
+        test_dataset = lambda: self.get_dataset_from_tfrecord(self.test_tfrecord_list)
 
         return train_dataset, valid_dataset, test_dataset

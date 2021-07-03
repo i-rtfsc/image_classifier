@@ -6,7 +6,10 @@
 import os
 import random
 import json
+
+import numpy as np
 import tensorflow as tf
+from PIL import Image
 
 from base import file_utils
 from config.global_configs import TFRecordBaseConfig, TFRecordConfig
@@ -98,7 +101,12 @@ class WriteTfrecord(BaseTfrecord):
             for file in files:
                 label = labels_and_index[os.path.basename(os.path.dirname(file))]
                 print("Writing to tfrecord: {}, file:{}, label:{}".format(tfrecord_name, file, label))
-                image = tf.io.decode_jpeg(tf.io.read_file(file))
+                # image = tf.io.decode_jpeg(tf.io.read_file(file))
+                image = Image.open(file)
+                # image = image.convert('RGB')
+                # image = image.resize((224, 224))
+                image = np.array(image).tobytes()
+
                 try:
                     tf_example = self.create_image_example(image, label)
                     if tf_example:

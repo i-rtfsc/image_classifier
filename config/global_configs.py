@@ -13,23 +13,25 @@ from base.switch_utils import switch, case
 from base.singleton import Singleton
 
 
-class CNNNetWork(Enum):
-    SIMPLE_NET = auto()
-    MOBILE_NET_V0 = auto()
-    MOBILE_NET_V1 = auto()
-    MOBILE_NET_V2 = auto()
-    MOBILE_NET_V3_LARGE = auto()
-    MOBILE_NET_V3_SMALL = auto()
-    INCEPTION_RESNET_V1 = auto()
-    INCEPTION_RESNET_V2 = auto()
-    INCEPTION_V3 = auto()
-    INCEPTION_V4 = auto()
+# class CNNNetWork:
+#     MOBILENET_V0 = 'mobilenet_v0'
+#     MOBILENET_V0_075 = 'mobilenet_v0_075'
+#     MOBILENET_V0_050 = 'mobilenet_v0_050'
+#     MOBILENET_V0_025 = 'mobilenet_v0_025'
+#
+#     MOBILENET_V1 = 'mobilenet_v1'
+#     MOBILENET_V1_075 = 'mobilenet_v1_075'
+#     MOBILENET_V1_050 = 'mobilenet_v1_050'
+#     MOBILENET_V1_025 = 'mobilenet_v1_025'
+#
+#     MOBILENET_V2 = 'mobilenet_v2'
+#     MOBILENET_V2_075 = 'mobilenet_v2_075'
+#     MOBILENET_V2_050 = 'mobilenet_v2_050'
+#     MOBILENET_V2_025 = 'mobilenet_v2_025'
+#
+#     MOBILENET_V3_LARGE = 'mobilenet_v3_large'
+#     MOBILENET_V3_SMALL = 'mobilenet_v3_small'
 
-    @classmethod
-    def value_of(cls, value):
-        for k, v in cls.__members__.items():
-            if k == value.upper():
-                return v
 
 
 class BaseConfig(object):
@@ -50,7 +52,7 @@ class ProjectConfig(BaseConfig):
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
         self.time = time_utils.get_time_str()
         self.project = None
-        self.net: CNNNetWork = CNNNetWork.MOBILE_NET_V0
+        self.net = 'mobilenet_v0'
         self.out = None
         self.image_width = None
         self.image_height = None
@@ -72,10 +74,11 @@ class ProjectConfig(BaseConfig):
             if 'project' == key and value is not None:
                 self.project = value
             if 'net' == key and value is not None:
-                self.net = CNNNetWork.value_of(value)
+                self.net = value
 
         self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
-        print('project config update config from cfg, project name =', self.project, ' time =', self.time)
+        print('project config update config from cfg, project name =', self.project, ' time =', self.time, ' net =',
+              self.net)
         try:
             base_config = configparser.ConfigParser()
             file = os.path.join(self.root_dir, 'config', 'project.cfg')
@@ -126,6 +129,7 @@ class TFRecordBaseConfig(BaseConfig):
     # AUTOTUNE = tf.data.experimental.AUTOTUNE
     AUTOTUNE = 12
     BATCH_SIZE = 128
+    BUFFER_SIZE = 30000
 
     META_FILE = 'meta.json'
     TRAIN_TFRECORD_LIST = 'train_tfrecord_list'
@@ -159,6 +163,7 @@ class TFRecordConfig(TFRecordBaseConfig):
         self.test_tfrecord_list = list()
         self.labels = None
         self.num_classes = None
+        self.val_numbers = -1
 
     def update(self, *args, **kwargs):
         action = args[0]
@@ -190,15 +195,34 @@ class TFRecordConfig(TFRecordBaseConfig):
                     for v in meta[self.TEST_TFRECORD_LIST]:
                         self.test_tfrecord_list.append(os.path.join(self.tfrecord_dir, v))
 
+                    # "group_numbers": {
+                    #     "train": 54000,
+                    #     "val": 6000,
+                    #     "test": 10000
+                    # },
+                    self.val_numbers = meta[self.GROUP_NUMBER]['val']
+
                 self.num_classes = len(self.labels)
                 break
 
 
 class TrainBaseConfig(BaseConfig):
-    NEURAL_NETWORK = CNNNetWork.INCEPTION_RESNET_V1
     INPUT_TENSOR_NAME = 'input'
     OUTPUT_TENSOR_NAME = 'Softmax'
     METRICS = ['accuracy']
+
+    DROP_RATE = 0.5
+    EVALUATION_STEP = 100
+    EARLY_STOPPING_PATIENCE = 45
+    EVAL_THROTTLE_SECS = 1000
+    SAVE_CHECKPOINTS_SECS = 1000
+    EVAL_START_DELAY_SECS = 500
+    SHUFFLE_BUFFER_SIZE = 30000
+    QUANT = 1
+    QUANT_DELAY = 8000
+
+    BEST_EXPORT = 'best'
+    FINAL_EXPORT = 'final'
 
 
 @Singleton
@@ -208,13 +232,12 @@ class TrainConfig(TrainBaseConfig):
         # 在update函数更新
         self.project = None
         self.train_dir = None
-        self.model_dir = None
+        self.model_freeze_dir = None
         self.train_best_export_dir = None
-        self.check_point_dir = None
+        # self.check_point_dir = None
         self.final_dir = None
         self.log_dir = None
         self.log_file = None
-        self.csv_log_file = None
 
         # 以下数据配置在train.cfg
         # 所有数据训练多少轮
@@ -224,6 +247,7 @@ class TrainConfig(TrainBaseConfig):
         self.initial_learning_rate = None
         self.decay_steps = None
         self.decay_rate = None
+        self.max_steps = 10000000
         # cks
         # loss,accuracy,val_loss,val_accuracy
         self.monitor = None
@@ -235,13 +259,13 @@ class TrainConfig(TrainBaseConfig):
         print('update train config')
         self.project = ProjectConfig.getDefault().project
         self.train_dir = os.path.join(ProjectConfig.getDefault().out, 'trained')
-        self.model_dir = os.path.join(ProjectConfig.getDefault().out, 'freeze_model')
-        self.train_best_export_dir = os.path.join(self.train_dir, 'best_export')
-        self.check_point_dir = os.path.join(self.train_dir, 'check_point')
-        self.final_dir = os.path.join(self.train_dir, 'final')
+        self.model_freeze_dir = os.path.join(ProjectConfig.getDefault().out, 'freeze_model')
+        self.train_best_export_dir = os.path.join(self.train_dir, 'export', self.BEST_EXPORT)
+        self.final_dir = os.path.join(self.train_dir, 'export', self.FINAL_EXPORT)
+
+        # self.check_point_dir = os.path.join(self.train_dir, 'check_point')
         self.log_dir = os.path.join(self.train_dir, 'logs')
         self.log_file = os.path.join(self.log_dir, 'train.log')
-        self.csv_log_file = os.path.join(self.log_dir, 'csv_train.log')
 
         try:
             base_config = configparser.ConfigParser()
@@ -252,6 +276,7 @@ class TrainConfig(TrainBaseConfig):
             else:
                 configs = base_config['TRAIN']
             self.epochs = int(configs['EPOCHS'])
+            self.max_steps = int(configs['STEPS'])
             self.initial_learning_rate = float(configs['INITIAL_LEARNING_RATE'])
             self.decay_steps = int(configs['DECAY_STEPS'])
             self.decay_rate = float(configs['DECAY_RATE'])

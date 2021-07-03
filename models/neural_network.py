@@ -2,217 +2,142 @@
 # -*- coding: utf-8 -*-
 # -*- encoding: utf-8 -*-
 
+import functools
+
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import optimizers
+from config.global_configs import TFRecordBaseConfig, ProjectConfig, TFRecordConfig
 
-from base.switch_utils import switch, case
-from config.global_configs import BaseConfig, CNNNetWork, TFRecordConfig, TrainBaseConfig, TrainConfig
-from models.mobilenet_v0 import MobileNetV0
-from models.mobilenet_v1 import MobileNetV1
-from models.mobilenet_v2 import MobileNetV2
-from models.mobilenet_v3_large import MobileNetV3Large
-from models.mobilenet_v3_small import MobileNetV3Small
-from models.inception_resnet_v1 import InceptionResNetV1
-from models.inception_resnet_v2 import InceptionResNetV2
-from models.inception_v4 import InceptionV4
-from models.simple_net import SimpleNet
+from models import mobilenet_v0
+from models import mobilenet_v1
 
-from models.keras.mobile_net_v0 import KMobileNetV0
+slim = tf.contrib.slim
+
 
 class NeuralNetwork(object):
 
-    def __init__(self, num_classes, input_shape=(None, TFRecordConfig.getDefault().image_width,
-                                                 TFRecordConfig.getDefault().image_height,
-                                                 TFRecordConfig.getDefault().channels),
-                 input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
-                 output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
-                 initial_learning_rate=TrainConfig.getDefault().initial_learning_rate,
-                 decay_steps=TrainConfig.getDefault().decay_steps,
-                 decay_rate=TrainConfig.getDefault().decay_rate,
-                 metrics=TrainBaseConfig.METRICS,
-                 network=TrainBaseConfig.NEURAL_NETWORK):
-        self.num_classes = num_classes
-        self.input_shape = input_shape
-        self.input_tensor_name = input_tensor_name
-        self.output_tensor_name = output_tensor_name
-        self.initial_learning_rate = initial_learning_rate
-        self.decay_steps = decay_steps
-        self.decay_rate = decay_rate
-        self.metrics = metrics
+    def __init__(self,
+                 network='mobilenet_v0',
+                 num_classes=1000,
+                 is_training=False):
+
         self.network = network
+        self.num_classes = num_classes
+        self.is_training = is_training
 
-    def build_model(self):
-        """选择采用哪种卷积网络"""
-        while switch(self.network):
-            if case(CNNNetWork.SIMPLE_NET):
-                base_model = SimpleNet(num_classes=self.num_classes,
-                                       input_shape=self.input_shape[1:],
-                                       input_tensor_name=self.input_tensor_name,
-                                       output_tensor_name=self.output_tensor_name)
-                break
+        self.networks_map = {
+            'mobilenet_v0': mobilenet_v0.mobilenet_v0,
+            'mobilenet_v0_075': mobilenet_v0.mobilenet_v0_075,
+            'mobilenet_v0_050': mobilenet_v0.mobilenet_v0_050,
+            'mobilenet_v0_025': mobilenet_v0.mobilenet_v0_025,
 
-            if case(CNNNetWork.MOBILE_NET_V0):
-                base_model = MobileNetV0(num_classes=self.num_classes,
-                                         input_shape=self.input_shape[1:],
-                                         input_tensor_name=self.input_tensor_name,
-                                         output_tensor_name=self.output_tensor_name)
-                break
+            'mobilenet_v1': mobilenet_v1.mobilenet_v1,
+            'mobilenet_v1_075': mobilenet_v1.mobilenet_v1_075,
+            'mobilenet_v1_050': mobilenet_v1.mobilenet_v1_050,
+            'mobilenet_v1_025': mobilenet_v1.mobilenet_v1_025,
 
-            if case(CNNNetWork.MOBILE_NET_V1):
-                base_model = MobileNetV1(num_classes=self.num_classes,
-                                         input_shape=self.input_shape[1:],
-                                         input_tensor_name=self.input_tensor_name,
-                                         output_tensor_name=self.output_tensor_name)
-                break
+            # 'mobilenet_v2': mobilenet_v2.mobilenet,
+            # 'mobilenet_v2_140': mobilenet_v2.mobilenet_v2_140,
+            # 'mobilenet_v2_035': mobilenet_v2.mobilenet_v2_035,
 
-            if case(CNNNetWork.MOBILE_NET_V2):
-                base_model = MobileNetV2(num_classes=self.num_classes,
-                                         input_shape=self.input_shape[1:],
-                                         input_tensor_name=self.input_tensor_name,
-                                         output_tensor_name=self.output_tensor_name)
-                break
+            # 'mobilenet_v3_small': mobilenet_v3.small,
+            # 'mobilenet_v3_large': mobilenet_v3.large,
+        }
 
-            if case(CNNNetWork.MOBILE_NET_V3_LARGE):
-                base_model = MobileNetV3Large(num_classes=self.num_classes,
-                                              input_shape=self.input_shape[1:],
-                                              input_tensor_name=self.input_tensor_name,
-                                              output_tensor_name=self.output_tensor_name)
-                break
+        self.arg_scopes_map = {
+            'mobilenet_v0': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v0_075': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v0_050': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v0_025': mobilenet_v1.mobilenet_v1_arg_scope,
 
-            if case(CNNNetWork.MOBILE_NET_V3_SMALL):
-                base_model = MobileNetV3Small(num_classes=self.num_classes,
-                                              input_shape=self.input_shape[1:],
-                                              input_tensor_name=self.input_tensor_name,
-                                              output_tensor_name=self.output_tensor_name)
-                break
+            'mobilenet_v1': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v1_075': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v1_050': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v1_025': mobilenet_v1.mobilenet_v1_arg_scope,
 
-            if case(CNNNetWork.INCEPTION_RESNET_V1):
-                base_model = InceptionResNetV1(num_classes=self.num_classes,
-                                               input_shape=self.input_shape[1:],
-                                               input_tensor_name=self.input_tensor_name,
-                                               output_tensor_name=self.output_tensor_name)
+            # 'mobilenet_v2': mobilenet_v2.training_scope,
+            # 'mobilenet_v2_035': mobilenet_v2.training_scope,
+            # 'mobilenet_v2_140': mobilenet_v2.training_scope,
 
-                break
+            # 'mobilenet_v3_small': mobilenet_v3.training_scope,
+            # 'mobilenet_v3_large': mobilenet_v3.training_scope,
+        }
 
-            if case(CNNNetWork.INCEPTION_RESNET_V2):
-                base_model = InceptionResNetV2(num_classes=self.num_classes,
-                                               input_shape=self.input_shape[1:],
-                                               input_tensor_name=self.input_tensor_name,
-                                               output_tensor_name=self.output_tensor_name)
-                break
+    def init_network(self):
 
-            if case(CNNNetWork.INCEPTION_V4):
-                base_model = InceptionV4(num_classes=self.num_classes,
-                                         input_shape=self.input_shape[1:],
-                                         input_tensor_name=self.input_tensor_name,
-                                         output_tensor_name=self.output_tensor_name)
-                break
+        if self.network not in self.networks_map:
+            raise ValueError(self.network, ' neural network is not supported at this time.')
+        func = self.networks_map[self.network]
 
-            ValueError('This cnn neural network is not supported at this time.')
-            break
+        @functools.wraps(func)
+        def network_fn(images, **kwargs):
+            arg_scope = self.arg_scopes_map[self.network](is_training=self.is_training)
+            with slim.arg_scope(arg_scope):
+                return func(images, self.num_classes, is_training=self.is_training, **kwargs)
 
-        network = tf.keras.models.Sequential()
-        for layer in base_model.layers:
-            network.add(layer)
-            if BaseConfig.DEBUG:
-                print(layer)
+        if hasattr(func, 'default_image_size'):
+            network_fn.default_image_size = func.default_image_size
 
-        network.build(input_shape=self.input_shape)
+        return network_fn
 
-        if BaseConfig.DEBUG:
-            network.summary()
+    # https://tensorflow.juejin.im/get_started/custom_estimators.html
+    @staticmethod
+    def build_network(features, labels, mode, params):
+        images = features[TFRecordBaseConfig.IMAGE]
 
-        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=self.initial_learning_rate,
-            decay_steps=self.decay_steps,
-            decay_rate=self.decay_rate)
-        network.compile(optimizer=optimizers.Adam(learning_rate=lr_schedule),
-                        loss=tf.losses.CategoricalCrossentropy(from_logits=True),
-                        metrics=self.metrics)
+        neural_network = NeuralNetwork(
+            network=ProjectConfig.getDefault().net,
+            num_classes=TFRecordConfig.getDefault().num_classes,
+        )
+        network = neural_network.init_network()
 
-        return network
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            dropout_keep_prob = 1 - params.drop_rate
+        else:
+            dropout_keep_prob = 1
 
-    def get_keras_network(self):
-        input_layer = tf.keras.layers.Input(
-            shape=self.input_shape[1:],
-            name=self.input_tensor_name)
+        logits, endpoints = network(images, dropout_keep_prob=dropout_keep_prob)
 
-        # create the base pre-trained model
-        while switch(self.network):
-            if case(CNNNetWork.MOBILE_NET_V1):
-                keras_model = KMobileNetV0(input_tensor=input_layer, weights=None,
-                                                              include_top=False)
-                break
+        if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL):
+            global_step = tf.train.get_or_create_global_step()
+            label_one_hot = tf.one_hot(labels[TFRecordBaseConfig.LABEL], params.num_classes)
+            loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(onehot_labels=label_one_hot, logits=logits))
+            tf.summary.scalar('cross_entropy', loss)
 
-            if case(CNNNetWork.MOBILE_NET_V2):
-                keras_model = tf.keras.applications.MobileNetV2(input_tensor=input_layer, weights=None,
-                                                                include_top=False)
-                break
+        predictions = tf.argmax(tf.nn.softmax(logits), axis=-1, name="final_output")
 
-            if case(CNNNetWork.MOBILE_NET_V3_LARGE):
-                keras_model = tf.keras.applications.MobileNetV3Large(input_tensor=input_layer, weights=None,
-                                                                     include_top=False)
-                break
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            decay_learning_rate = tf.train.exponential_decay(
+                learning_rate=params.learning_rate,
+                global_step=global_step,
+                decay_steps=params.decay_steps,
+                decay_rate=params.decay_rate
+            )
+            tf.summary.scalar('learning_rate', decay_learning_rate)
+            if params.quant:
+                g = tf.get_default_graph()
+                tf.contrib.quantize.create_training_graph(input_graph=g, quant_delay=params.quant_delay)
 
-            if case(CNNNetWork.MOBILE_NET_V3_SMALL):
-                keras_model = tf.keras.applications.MobileNetV3Small(input_tensor=input_layer, weights=None,
-                                                                     include_top=False)
-                break
+            optimizer = tf.train.AdamOptimizer(learning_rate=decay_learning_rate)
+            train_op = optimizer.minimize(loss, global_step)
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
-            if case(CNNNetWork.INCEPTION_RESNET_V2):
-                keras_model = tf.keras.applications.InceptionResNetV2(input_tensor=input_layer, weights=None,
-                                                                      include_top=False)
-                break
+        if params.quant and mode in (tf.estimator.ModeKeys.EVAL, tf.estimator.ModeKeys.PREDICT):
+            g = tf.get_default_graph()
+            tf.contrib.quantize.create_eval_graph(input_graph=g)
 
-            if case(CNNNetWork.INCEPTION_V3):
-                keras_model = tf.keras.applications.InceptionV3(input_tensor=input_layer, weights=None,
-                                                                include_top=False)
-                break
+        if mode == tf.estimator.ModeKeys.EVAL:
+            accuracy = tf.metrics.accuracy(labels=labels[TFRecordBaseConfig.LABEL], predictions=predictions)
+            tf.summary.scalar('accuracy', accuracy)
+            eval_metric_ops = {
+                "accuracy": accuracy
+            }
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-            ValueError('This cnn neural network is not supported at this time.')
-            break
-
-        avg_pool = tf.keras.layers.GlobalAveragePooling2D()(keras_model.output)
-        # let's add a fully-connected layer
-        fc = tf.keras.layers.Dense(1024, activation='relu')(avg_pool)
-        # and a logistic layer
-        predictions = tf.keras.layers.Dense(self.num_classes, activation='softmax', name=self.output_tensor_name)(fc)
-
-        # this is the model we will train
-        network = tf.keras.Model(inputs=keras_model.input, outputs=predictions,
-                                 name=self.network.name.lower())
-
-        # network = tf.keras.models.Sequential(keras_model.output)
-
-        if BaseConfig.DEBUG:
-            network.summary()
-
-        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=self.initial_learning_rate,
-            decay_steps=self.decay_steps,
-            decay_rate=self.decay_rate)
-        network.compile(optimizer=optimizers.Adam(learning_rate=lr_schedule),
-                        loss=tf.losses.CategoricalCrossentropy(from_logits=True),
-                        metrics=self.metrics)
-
-        return network
-
-    def simple_model(self):
-        network = tf.keras.models.Sequential()
-        network.add(tf.keras.layers.InputLayer(input_shape=self.input_shape[1:], name=self.input_tensor_name))
-        network.add(tf.keras.layers.Flatten())
-        network.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
-        network.add(tf.keras.layers.Dense(10, activation=tf.nn.softmax))
-
-        if BaseConfig.DEBUG:
-            network.summary()
-
-        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=self.initial_learning_rate,
-            decay_steps=self.decay_steps,
-            decay_rate=self.decay_rate)
-        network.compile(optimizer=optimizers.Adam(learning_rate=lr_schedule),
-                        loss=tf.losses.CategoricalCrossentropy(from_logits=True),
-                        metrics=self.metrics)
-        return network
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            predictions_dict = {
+                "predictions": predictions
+            }
+            export_outputs = {
+                "predict_output": tf.estimator.export.PredictOutput(predictions_dict)
+            }
+            return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
