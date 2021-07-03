@@ -56,7 +56,7 @@ def save_images(train_dir, shape, files):
             label = number_dict[l]
             out_dir = os.path.join(train_dir, label)
             filename = '{}-{}.jpeg'.format(label, index)
-            if BaseConfig.DEBUG:
+            if ProjectConfig.getDefault().debug:
                 print(out_dir, filename)
             file_utils.create_directory(out_dir)
             cv2.imwrite(os.path.join(out_dir, filename), image)
@@ -69,7 +69,7 @@ def main():
     test_image = 't10k-images-idx3-ubyte'
     test_label = 't10k-labels-idx1-ubyte'
 
-    ProjectConfig.getDefault().update(project='mnist_region_classifier')
+    ProjectConfig.getDefault().update(project='mnist_region_classifier', debug=True)
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
 
     download_dir = ProjectConfig.getDefault().source_image_download_dir
@@ -81,13 +81,13 @@ def main():
 
     # step 1
     # download files
-    # download(download_dir, [train_image, train_label, test_image, test_label])
+    download(download_dir, [train_image, train_label, test_image, test_label])
 
     # step 2
     # extract files
     download_files = [os.path.join(download_dir, file) for file in
                       [train_image, train_label, test_image, test_label]]
-    # extract(extract_dir, download_files)
+    extract(extract_dir, download_files)
 
     # step 3
     # save files

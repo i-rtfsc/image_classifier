@@ -6,40 +6,15 @@
 import configparser
 import json
 import os
-from enum import Enum, auto
 
 from base import time_utils
 from base.switch_utils import switch, case
 from base.singleton import Singleton
 
 
-# class CNNNetWork:
-#     MOBILENET_V0 = 'mobilenet_v0'
-#     MOBILENET_V0_075 = 'mobilenet_v0_075'
-#     MOBILENET_V0_050 = 'mobilenet_v0_050'
-#     MOBILENET_V0_025 = 'mobilenet_v0_025'
-#
-#     MOBILENET_V1 = 'mobilenet_v1'
-#     MOBILENET_V1_075 = 'mobilenet_v1_075'
-#     MOBILENET_V1_050 = 'mobilenet_v1_050'
-#     MOBILENET_V1_025 = 'mobilenet_v1_025'
-#
-#     MOBILENET_V2 = 'mobilenet_v2'
-#     MOBILENET_V2_075 = 'mobilenet_v2_075'
-#     MOBILENET_V2_050 = 'mobilenet_v2_050'
-#     MOBILENET_V2_025 = 'mobilenet_v2_025'
-#
-#     MOBILENET_V3_LARGE = 'mobilenet_v3_large'
-#     MOBILENET_V3_SMALL = 'mobilenet_v3_small'
-
-
-
 class BaseConfig(object):
-    DEBUG = True
 
     def update(self, *args, **kwargs):
-        if BaseConfig.DEBUG:
-            print('base onfig args =', args[0])
         pass
 
     def __str__(self):
@@ -54,10 +29,12 @@ class ProjectConfig(BaseConfig):
         self.project = None
         self.net = 'mobilenet_v0'
         self.out = None
+        self.debug = 0
         self.image_width = None
         self.image_height = None
         self.channels = None
         self.image_size = [self.image_width, self.image_height]
+        self.image_shape = [self.image_width, self.image_height, self.channels]
         self.source_image_train_dir = None
         self.source_image_test_dir = None
         self.source_image_download_dir = None
@@ -67,6 +44,7 @@ class ProjectConfig(BaseConfig):
     # kwargs:
     # time
     # project
+    # debug
     def update(self, *args, **kwargs):
         for key, value in kwargs.items():
             if 'time' == key and value is not None:
@@ -75,10 +53,13 @@ class ProjectConfig(BaseConfig):
                 self.project = value
             if 'net' == key and value is not None:
                 self.net = value
+            if 'debug' == key and value is not None:
+                self.debug = value
 
         self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
-        print('project config update config from cfg, project name =', self.project, ' time =', self.time, ' net =',
-              self.net)
+        print('project config update config from cfg, project name =', self.project, ', time =', self.time, ', net =',
+              self.net, ', debug =', self.debug)
+
         try:
             base_config = configparser.ConfigParser()
             file = os.path.join(self.root_dir, 'config', 'project.cfg')
@@ -88,6 +69,7 @@ class ProjectConfig(BaseConfig):
             self.image_height = int(configs['IMAGE_HEIGHT'])
             self.channels = int(configs['CHANNELS'])
             self.image_size = [self.image_width, self.image_height]
+            self.image_shape = [self.image_width, self.image_height, self.channels]
             self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
             self.source_image_test_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TEST'])
             self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
@@ -195,11 +177,6 @@ class TFRecordConfig(TFRecordBaseConfig):
                     for v in meta[self.TEST_TFRECORD_LIST]:
                         self.test_tfrecord_list.append(os.path.join(self.tfrecord_dir, v))
 
-                    # "group_numbers": {
-                    #     "train": 54000,
-                    #     "val": 6000,
-                    #     "test": 10000
-                    # },
                     self.val_numbers = meta[self.GROUP_NUMBER]['val']
 
                 self.num_classes = len(self.labels)
@@ -271,7 +248,7 @@ class TrainConfig(TrainBaseConfig):
             base_config = configparser.ConfigParser()
             file = os.path.join(ProjectConfig.getDefault().root_dir, 'config', 'train.cfg')
             base_config.read(file)
-            if self.DEBUG:
+            if ProjectConfig.getDefault().debug:
                 configs = base_config['DEBUG']
             else:
                 configs = base_config['TRAIN']

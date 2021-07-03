@@ -12,7 +12,8 @@ import train_image_classifier
 from base import time_utils
 from base.log_utils import TerminalLogger
 
-from config.global_configs import ProjectConfig, TrainBaseConfig, TrainConfig, TFRecordBaseConfig, TFRecordConfig, UserConfig
+from config.global_configs import ProjectConfig, TrainBaseConfig, TrainConfig, TFRecordBaseConfig, TFRecordConfig, \
+    UserConfig
 from dataset.write_tfrecord import WriteTfrecord
 from dataset.read_tfrecord import ReadTfrecord
 
@@ -29,6 +30,8 @@ def parseargs():
                       help='network', default='mobilenet_v0')
     option.add_option('-t', '--time', dest='time', type='string',
                       help='time dir', default=None)
+    option.add_option('-d', '--debug', dest='debug', type='int',
+                      help='debug', default=0)
     option.add_option('-g', '--gpu', dest='gpu', type='string',
                       help='gpu', default='1')
     parser.add_option_group(option)
@@ -66,12 +69,13 @@ def main():
     if options.net:
         net = options.net.strip()
     gpu = options.gpu.strip()
+    debug = options.debug
 
-    print('main func, project name =', project, ' time =', time, ' net =', net)
+    print('main func, project name =', project, ' time =', time, ' net =', net, ' debug =', debug)
 
     # step 1
     # init or update configs
-    ProjectConfig.getDefault().update(project=project, time=time, net=net)
+    ProjectConfig.getDefault().update(project=project, time=time, net=net, debug=debug)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TrainConfig.getDefault().update()
@@ -100,7 +104,7 @@ def main():
                                 train_tfrecord_list=TFRecordConfig.getDefault().train_tfrecord_list,
                                 val_tfrecord_list=TFRecordConfig.getDefault().val_tfrecord_list,
                                 test_tfrecord_list=TFRecordConfig.getDefault().test_tfrecord_list)
-    train_dataset, valid_dataset, test_dataset =  readTfrecord.get_datasets()
+    train_dataset, valid_dataset, test_dataset = readTfrecord.get_datasets()
 
     # step 5
     # running train
