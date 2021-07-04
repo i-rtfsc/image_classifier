@@ -31,11 +31,13 @@ def parseargs():
     option.add_option('-p', '--project', dest='project', type='string',
                       help='which project', default='mnist_region_classifier')
     option.add_option('-n', '--net', dest='net', type='string',
-                      help='network', default=None)
+                      help='network', default='mobilenet_v0')
     option.add_option('-t', '--time', dest='time', type='string',
                       help='time dir', default=None)
-    option.add_option('-g', '--gpus', dest='gpus', type='string',
-                      help='gpus', default='0,1')
+    option.add_option('-d', '--debug', dest='debug', type='int',
+                      help='debug', default=0)
+    option.add_option('-g', '--gpu', dest='gpu', type='string',
+                      help='gpu', default='1')
     parser.add_option_group(option)
 
     (options, args) = parser.parse_args()
@@ -154,7 +156,7 @@ def train(project):
     # TODO
     # inference graph
 
-    if BaseConfig.DEBUG:
+    if ProjectConfig.getDefault().debug:
         best_model_timestamp = sorted(os.listdir(TrainConfig.getDefault().train_best_export_dir))[-1]
         final_model_path = os.path.join(TrainConfig.getDefault().train_best_export_dir, best_model_timestamp)
         neural_network = tf.keras.models.load_model(final_model_path)
@@ -170,10 +172,11 @@ def main():
         time = options.time.strip()
     if options.net:
         net = options.net.strip()
-    gpus = options.gpus.strip()
+    gpu = options.gpu.strip()
+    debug = options.debug.strip()
 
     try:
-        os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpu
         gpus = tf.config.experimental.list_physical_devices()
         if gpus:
             for gpu in gpus:
@@ -184,7 +187,7 @@ def main():
         print('exception when set gpus, error = ', e)
 
     # init or update configs
-    ProjectConfig.getDefault().update(project=project, time=time, net=net)
+    ProjectConfig.getDefault().update(project=project, time=time, net=net, debug=debug)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TrainConfig.getDefault().update()

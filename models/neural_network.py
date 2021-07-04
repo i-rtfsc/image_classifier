@@ -7,7 +7,7 @@ from tensorflow import keras
 from tensorflow.keras import optimizers
 
 from base.switch_utils import switch, case
-from config.global_configs import BaseConfig, CNNNetWork, TFRecordConfig, TrainBaseConfig, TrainConfig
+from config.global_configs import BaseConfig, CNNNetWork, TFRecordConfig, TrainBaseConfig, TrainConfig, ProjectConfig
 from models.mobilenet_v0 import MobileNetV0
 from models.mobilenet_v1 import MobileNetV1
 from models.mobilenet_v2 import MobileNetV2
@@ -41,6 +41,7 @@ class NeuralNetwork(object):
         self.decay_rate = decay_rate
         self.metrics = metrics
         self.network = network
+        self.debug = ProjectConfig.getDefault().debug
 
     def build_model(self):
         """选择采用哪种卷积网络"""
@@ -115,12 +116,12 @@ class NeuralNetwork(object):
         network = tf.keras.models.Sequential()
         for layer in base_model.layers:
             network.add(layer)
-            if BaseConfig.DEBUG:
+            if self.DEBUG:
                 print(layer)
 
         network.build(input_shape=self.input_shape)
 
-        if BaseConfig.DEBUG:
+        if self.DEBUG:
             network.summary()
 
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
@@ -185,7 +186,7 @@ class NeuralNetwork(object):
 
         # network = tf.keras.models.Sequential(keras_model.output)
 
-        if BaseConfig.DEBUG:
+        if self.DEBUG:
             network.summary()
 
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
@@ -205,7 +206,7 @@ class NeuralNetwork(object):
         network.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
         network.add(tf.keras.layers.Dense(10, activation=tf.nn.softmax))
 
-        if BaseConfig.DEBUG:
+        if self.DEBUG:
             network.summary()
 
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(

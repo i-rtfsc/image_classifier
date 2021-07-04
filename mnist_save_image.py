@@ -56,8 +56,7 @@ def save_images(train_dir, shape, files):
             label = number_dict[l]
             out_dir = os.path.join(train_dir, label)
             filename = '{}-{}.jpeg'.format(label, index)
-            if BaseConfig.DEBUG:
-                print(out_dir, filename)
+            print(out_dir, filename)
             file_utils.create_directory(out_dir)
             cv2.imwrite(os.path.join(out_dir, filename), image)
 

@@ -33,11 +33,8 @@ class CNNNetWork(Enum):
 
 
 class BaseConfig(object):
-    DEBUG = True
 
     def update(self, *args, **kwargs):
-        if BaseConfig.DEBUG:
-            print('base onfig args =', args[0])
         pass
 
     def __str__(self):
@@ -51,11 +48,13 @@ class ProjectConfig(BaseConfig):
         self.time = time_utils.get_time_str()
         self.project = None
         self.net: CNNNetWork = CNNNetWork.MOBILE_NET_V0
+        self.debug = 0
         self.out = None
         self.image_width = None
         self.image_height = None
         self.channels = None
         self.image_size = [self.image_width, self.image_height]
+        self.image_shape = [self.image_width, self.image_height, self.channels]
         self.source_image_train_dir = None
         self.source_image_test_dir = None
         self.source_image_download_dir = None
@@ -65,6 +64,7 @@ class ProjectConfig(BaseConfig):
     # kwargs:
     # time
     # project
+    # debug
     def update(self, *args, **kwargs):
         for key, value in kwargs.items():
             if 'time' == key and value is not None:
@@ -73,6 +73,8 @@ class ProjectConfig(BaseConfig):
                 self.project = value
             if 'net' == key and value is not None:
                 self.net = CNNNetWork.value_of(value)
+            if 'debug' == key and value is not None:
+                self.debug = value
 
         self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
         print('project config update config from cfg, project name =', self.project, ' time =', self.time)
@@ -85,6 +87,7 @@ class ProjectConfig(BaseConfig):
             self.image_height = int(configs['IMAGE_HEIGHT'])
             self.channels = int(configs['CHANNELS'])
             self.image_size = [self.image_width, self.image_height]
+            self.image_shape = [self.image_width, self.image_height, self.channels]
             self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
             self.source_image_test_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TEST'])
             self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
@@ -152,6 +155,7 @@ class TFRecordConfig(TFRecordBaseConfig):
         self.image_height = None
         self.channels = None
         self.image_size = None
+        self.image_shape = [self.image_width, self.image_height, self.channels]
         self.tfrecord_dir = None
         self.meta_file = None
         self.train_tfrecord_list = list()
@@ -172,6 +176,7 @@ class TFRecordConfig(TFRecordBaseConfig):
                 self.image_height = ProjectConfig.getDefault().image_height
                 self.channels = ProjectConfig.getDefault().channels
                 self.image_size = [self.image_width, self.image_height]
+                self.image_shape = [self.image_width, self.image_height, self.channels]
                 self.tfrecord_dir = os.path.join(ProjectConfig.getDefault().out, 'tfrecord')
                 self.meta_file = os.path.join(self.tfrecord_dir, self.META_FILE)
                 break
@@ -247,7 +252,7 @@ class TrainConfig(TrainBaseConfig):
             base_config = configparser.ConfigParser()
             file = os.path.join(ProjectConfig.getDefault().root_dir, 'config', 'train.cfg')
             base_config.read(file)
-            if self.DEBUG:
+            if ProjectConfig.getDefault().debug:
                 configs = base_config['DEBUG']
             else:
                 configs = base_config['TRAIN']
