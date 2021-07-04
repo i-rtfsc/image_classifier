@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -*- encoding: utf-8 -*-
+
+
 import random
 
 import tensorflow as tf
@@ -38,14 +40,14 @@ class BaseTfrecord(object):
         }
         parsed = tf.parse_single_example(example, keys_to_features)
 
-        img = tf.decode_raw(parsed[TFRecordBaseConfig.IMAGE], tf.uint8)
-        img = tf.reshape(img, [TFRecordConfig.getDefault().image_width, TFRecordConfig.getDefault().image_height,
-                               TFRecordConfig.getDefault().channels])
-        img = tf.image.convert_image_dtype(img, dtype=tf.float32)
-        img = tf.multiply(tf.subtract(img, 0.5), 2)
+        image = tf.decode_raw(parsed[TFRecordBaseConfig.IMAGE], tf.uint8)
+        image = tf.reshape(image, [TFRecordConfig.getDefault().image_width, TFRecordConfig.getDefault().image_height,
+                                   TFRecordConfig.getDefault().channels])
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+        image = tf.multiply(tf.subtract(image, 0.5), 2)
         label = tf.cast(parsed[TFRecordBaseConfig.LABEL], tf.int32)
 
-        features = {TFRecordBaseConfig.IMAGE: img}
+        features = {TFRecordBaseConfig.IMAGE: image}
         labels = {TFRecordBaseConfig.LABEL: label}
         return features, labels
 

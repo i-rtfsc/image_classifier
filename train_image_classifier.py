@@ -41,17 +41,14 @@ def serving_input_receiver_fn():
     # This is used to define inputs to serve the model.
     reciever_tensors = {
         # The size of input image is flexible.
-        TFRecordBaseConfig.IMAGE: tf.placeholder(dtype=tf.float32, shape=[None, TFRecordConfig.getDefault().image_width,
-                                                                          TFRecordConfig.getDefault().image_height,
-                                                                          TFRecordConfig.getDefault().channels],
+        TFRecordBaseConfig.IMAGE: tf.placeholder(dtype=tf.float32,
+                                                 shape=[None, *TFRecordConfig.getDefault().image_shape],
                                                  name=TrainBaseConfig.INPUT_TENSOR_NAME)}
 
     # # Convert give inputs to adjust to the model.
     # features = {
     #     # Resize given images.
-    #     TFRecordBaseConfig.IMAGE: tf.reshape(reciever_tensors[INPUT_FEATURE], [None, TFRecordConfig.getDefault().image_width,
-    #                                                                       TFRecordConfig.getDefault().image_height,
-    #                                                                       TFRecordConfig.getDefault().channels])
+    #     TFRecordBaseConfig.IMAGE: tf.reshape(reciever_tensors[INPUT_FEATURE], [None, *TFRecordConfig.getDefault().image_shape])
     # }
 
     # return: ServingInputReciever
@@ -66,6 +63,7 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
     env_utils.select_gpu(gpu)
 
     # limit to num_cpu_core CPU usage
+    # tf.compat.v1.ConfigProto
     session_config = tf.ConfigProto(device_count={"CPU": 8},
                                     log_device_placement=True,
                                     inter_op_parallelism_threads=2,

@@ -138,6 +138,7 @@ class TFRecordConfig(TFRecordBaseConfig):
         self.image_height = None
         self.channels = None
         self.image_size = None
+        self.image_shape = None
         self.tfrecord_dir = None
         self.meta_file = None
         self.train_tfrecord_list = list()
@@ -159,6 +160,7 @@ class TFRecordConfig(TFRecordBaseConfig):
                 self.image_height = ProjectConfig.getDefault().image_height
                 self.channels = ProjectConfig.getDefault().channels
                 self.image_size = [self.image_width, self.image_height]
+                self.image_shape = [self.image_width, self.image_height, self.channels]
                 self.tfrecord_dir = os.path.join(ProjectConfig.getDefault().out, 'tfrecord')
                 self.meta_file = os.path.join(self.tfrecord_dir, self.META_FILE)
                 break

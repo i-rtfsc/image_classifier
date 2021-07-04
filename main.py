@@ -110,14 +110,14 @@ def main():
     # running train
     train_image_classifier.running_train(train_dataset, valid_dataset, test_dataset, gpu)
 
-    # step 2
+    # step 6
     # freeze & save model
-    target_pb_path = freeze_graph.freeze_session(model_dir=TrainConfig.getDefault().train_best_export_dir,
-                                                 frozen_out_dir=TrainConfig.getDefault().model_freeze_dir,
-                                                 frozen_graph_filename=TrainConfig.getDefault().project,
-                                                 output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
-                                                 gpu=gpu,
-                                                 meta_file=TFRecordConfig.getDefault().meta_file)
+    freeze_graph.freeze_session(model_dir=TrainConfig.getDefault().train_best_export_dir,
+                                frozen_out_dir=TrainConfig.getDefault().model_freeze_dir,
+                                frozen_graph_filename=TrainConfig.getDefault().project,
+                                output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
+                                gpu=gpu,
+                                meta_file=TFRecordConfig.getDefault().meta_file)
 
 
 if __name__ == '__main__':
