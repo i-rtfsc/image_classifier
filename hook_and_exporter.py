@@ -113,6 +113,8 @@ class EvalEarlyStoppingHook(tf.estimator.SessionRunHook):
     def begin(self):
         print("EarlyStoppingHook Begin")
         self._step = 0
+        # for op in tf.get_default_graph().get_operations():
+        #     print("--->>>>> ", op.name)
         self._accuracy_tensor = tf.get_default_graph().get_tensor_by_name("accuracy/value:0")
         if self._total_eval_examples != 0:
             stop_step = math.ceil(self._total_eval_examples / self._batch_size)

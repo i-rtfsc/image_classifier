@@ -28,6 +28,8 @@ def parseargs():
                       help='which project', default='mnist_region_classifier')
     option.add_option('-n', '--net', dest='net', type='string',
                       help='network', default='mobilenet_v0')
+    option.add_option('-k', '--keras', dest='keras', type='int',
+                      help='use keras', default=0)
     option.add_option('-t', '--time', dest='time', type='string',
                       help='time dir', default=None)
     option.add_option('-d', '--debug', dest='debug', type='int',
@@ -70,12 +72,13 @@ def main():
         net = options.net.strip()
     gpu = options.gpu.strip()
     debug = options.debug
+    keras = options.keras
 
-    print('main func, project name =', project, ' time =', time, ' net =', net, ' debug =', debug)
+    print('main func, project name =', project, ', keras =', keras, ', time =', time, ', net =', net, ', debug =', debug)
 
     # step 1
     # init or update configs
-    ProjectConfig.getDefault().update(project=project, time=time, net=net, debug=debug)
+    ProjectConfig.getDefault().update(project=project, keras=keras, time=time, net=net, debug=debug)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TrainConfig.getDefault().update()

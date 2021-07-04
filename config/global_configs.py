@@ -27,6 +27,7 @@ class ProjectConfig(BaseConfig):
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
         self.time = time_utils.get_time_str()
         self.project = None
+        self.keras = 0
         self.net = 'mobilenet_v0'
         self.out = None
         self.debug = 0
@@ -51,6 +52,8 @@ class ProjectConfig(BaseConfig):
                 self.time = value
             if 'project' == key and value is not None:
                 self.project = value
+            if 'keras' == key and value is not None:
+                self.keras = value
             if 'net' == key and value is not None:
                 self.net = value
             if 'debug' == key and value is not None:

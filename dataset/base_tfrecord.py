@@ -41,8 +41,7 @@ class BaseTfrecord(object):
         parsed = tf.parse_single_example(example, keys_to_features)
 
         image = tf.decode_raw(parsed[TFRecordBaseConfig.IMAGE], tf.uint8)
-        image = tf.reshape(image, [TFRecordConfig.getDefault().image_width, TFRecordConfig.getDefault().image_height,
-                                   TFRecordConfig.getDefault().channels])
+        image = tf.reshape(image, TFRecordConfig.getDefault().image_shape)
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
         image = tf.multiply(tf.subtract(image, 0.5), 2)
         label = tf.cast(parsed[TFRecordBaseConfig.LABEL], tf.int32)
@@ -64,3 +63,29 @@ class BaseTfrecord(object):
         dataset = dataset.batch(TFRecordBaseConfig.BATCH_SIZE).prefetch(TFRecordBaseConfig.BATCH_SIZE)
 
         return dataset.make_one_shot_iterator().get_next()
+
+    def parse_tfrecord_fn_by_keras(self, example):
+        feature_description = {
+            TFRecordBaseConfig.IMAGE: tf.io.FixedLenFeature([], tf.string),
+            TFRecordBaseConfig.LABEL: tf.io.FixedLenFeature([], tf.int64),
+        }
+        example = tf.io.parse_single_example(example, feature_description)
+
+        image = tf.decode_raw(example[TFRecordBaseConfig.IMAGE], tf.uint8)
+        image = tf.reshape(image, TFRecordConfig.getDefault().image_shape)
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+        image = tf.image.resize(image, size=(TFRecordConfig.getDefault().image_size))
+
+        label = tf.one_hot(example[TFRecordBaseConfig.LABEL], self.num_classes)
+
+        return image, label
+
+    def get_dataset_from_tfrecord_by_keras(self, filenames):
+        dataset = (
+            tf.data.TFRecordDataset(filenames, num_parallel_reads=TFRecordBaseConfig.AUTOTUNE)
+                .map(self.parse_tfrecord_fn_by_keras, num_parallel_calls=TFRecordBaseConfig.AUTOTUNE)
+                .shuffle(TFRecordBaseConfig.BUFFER_SIZE)
+                .batch(TFRecordBaseConfig.BATCH_SIZE)
+                .prefetch(TFRecordBaseConfig.AUTOTUNE)
+        )
+        return dataset

@@ -9,7 +9,7 @@ from easydict import EasyDict as edict
 
 from base import env_utils
 from config.global_configs import TrainBaseConfig, \
-    TrainConfig, TFRecordBaseConfig, TFRecordConfig
+    TrainConfig, TFRecordBaseConfig, TFRecordConfig, ProjectConfig
 from hook_and_exporter import BetterExporter, EvalEarlyStoppingHook, TrainEarlyStoppingHook
 from models.neural_network import NeuralNetwork
 
@@ -74,14 +74,48 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
                                               save_checkpoints_secs=training_params.save_checkpoints_secs)
 
     # build estimator
-    estimator_network = tf.estimator.Estimator(
-        model_fn=NeuralNetwork.build_network,
-        model_dir=TrainConfig.getDefault().train_dir,
-        config=estimator_config,
-        params=training_params,
-    )
 
-    # train_early_stopping_hook = TrainEarlyStoppingHook(monitor=TrainConfig.getDefault().monitor,
+    if ProjectConfig.getDefault().keras:
+        # # TODO
+        # # 这种训练方式遇到一个问题，暂时不会保存PB文件，待解决
+        # neural_network = NeuralNetwork(
+        #     network=ProjectConfig.getDefault().net,
+        #     num_classes=TFRecordConfig.getDefault().num_classes,
+        # )
+        # keras_network = neural_network.init_keras_network()
+        #
+        # # 如果用这种方式训练，返回的dataset是image, classifier
+        # # readTfrecord.get_keras_datasets()
+        # estimator_network = tf.keras.estimator.model_to_estimator(
+        #     keras_model=keras_network,
+        #     model_dir=TrainConfig.getDefault().train_dir,
+        #     custom_objects=training_params,
+        #     config=estimator_config,
+        # )
+
+        # 如果用这种方式训练，返回的dataset是{xxx, image}, {yyy, classifier}
+        # 所以如果用这种方式训练，则ReadTfrecord读dataset要使用get_dataset_from_tfrecord
+        # 这种训练方式output_tensor_name不是设置的Softmax
+        # TODO
+        # 1. 待研究维护不是 Softmax
+        # 2. 通过tf.get_default_graph().get_operations()找出output是什么
+        estimator_network = tf.estimator.Estimator(
+            model_fn=NeuralNetwork.build_keras_network,
+            model_dir=TrainConfig.getDefault().train_dir,
+            config=estimator_config,
+            params=training_params,
+        )
+    else:
+        # 如果用这种方式训练，返回的dataset是{xxx, image}, {yyy, classifier}
+        # estimator都是这种数据
+        estimator_network = tf.estimator.Estimator(
+            model_fn=NeuralNetwork.build_network,
+            model_dir=TrainConfig.getDefault().train_dir,
+            config=estimator_config,
+            params=training_params,
+        )
+
+    # train_early_stopping_hook = KerasTrainEarlyStoppingHook(monitor=TrainConfig.getDefault().monitor,
     #                                                    min_delta=TrainConfig.getDefault().min_delta,
     #                                                    patience=TrainConfig.getDefault().patience)
     train_early_stopping_hook = TrainEarlyStoppingHook()
@@ -102,11 +136,14 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
                                                 serving_input_receiver_fn=serving_input_receiver_fn)
 
     # train and evaluate
-    train_spec = tf.estimator.TrainSpec(train_dataset, max_steps=training_params.max_steps,
-                                        hooks=[train_early_stopping_hook])
+    train_spec = tf.estimator.TrainSpec(train_dataset,
+                                        max_steps=training_params.max_steps,
+                                        hooks=[train_early_stopping_hook],
+                                        )
     eval_spec = tf.estimator.EvalSpec(valid_dataset, steps=training_params.evaluation_step,
                                       start_delay_secs=training_params.eval_start_delay_secs,
                                       throttle_secs=training_params.eval_throttle_secs,
                                       exporters=[final_exporter, better_exporter],
-                                      hooks=[eval_train_early_stopping_hook])
+                                      hooks=[eval_train_early_stopping_hook],
+                                      )
     tf.estimator.train_and_evaluate(estimator_network, train_spec, eval_spec)
