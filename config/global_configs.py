@@ -73,10 +73,26 @@ class ProjectConfig(BaseConfig):
             self.channels = int(configs['CHANNELS'])
             self.image_size = [self.image_width, self.image_height]
             self.image_shape = [self.image_width, self.image_height, self.channels]
-            self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
-            self.source_image_test_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TEST'])
-            self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
-            self.source_image_extract_dir = configs['SOURCE_IMAGE_EXTRACT']
+            if os.path.exists(configs['SOURCE_IMAGE_TRAIN']):
+                self.source_image_train_dir = configs['SOURCE_IMAGE_TRAIN']
+            else:
+                self.source_image_train_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TRAIN'])
+
+            if os.path.exists(configs['SOURCE_IMAGE_TEST']):
+                self.source_image_test_dir = configs['SOURCE_IMAGE_TEST']
+            else:
+                self.source_image_test_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_TEST'])
+
+            if os.path.exists(configs['SOURCE_IMAGE_DOWNLOAD']):
+                self.source_image_download_dir = configs['SOURCE_IMAGE_DOWNLOAD']
+            else:
+                self.source_image_download_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_DOWNLOAD'])
+
+            if os.path.exists(configs['SOURCE_IMAGE_EXTRACT']):
+                self.source_image_extract_dir = configs['SOURCE_IMAGE_EXTRACT']
+            else:
+                self.source_image_extract_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_EXTRACT'])
+
         except Exception as e:
             print('exception when parse, error = ', e)
 
@@ -112,7 +128,7 @@ class TFRecordBaseConfig(BaseConfig):
     MAX_THREAD = 20
 
     # AUTOTUNE = tf.data.experimental.AUTOTUNE
-    AUTOTUNE = 12
+    AUTOTUNE = 32
     BATCH_SIZE = 128
     BUFFER_SIZE = 30000
 
@@ -125,7 +141,10 @@ class TFRecordBaseConfig(BaseConfig):
     TRAIN = 'train'
     VAL = 'val'
     TEST = 'test'
-
+    INPUT_SHAPE = 'input_shape'
+    WIDTH = 'width'
+    HEIGHT = 'height'
+    CHANNELS = 'channels'
     UPDATE_BASE = 'update_base'
     UPDATE_DATASET = 'update_dataset'
 
@@ -197,7 +216,7 @@ class TrainBaseConfig(BaseConfig):
     EVALUATION_STEP = 100
     EARLY_STOPPING_PATIENCE = 45
     EVAL_THROTTLE_SECS = 1000
-    SAVE_CHECKPOINTS_SECS = 1000
+    SAVE_CHECKPOINTS_SECS = 60 * 20
     EVAL_START_DELAY_SECS = 500
     SHUFFLE_BUFFER_SIZE = 30000
     QUANT = 1
@@ -220,6 +239,7 @@ class TrainConfig(TrainBaseConfig):
         self.final_dir = None
         self.log_dir = None
         self.log_file = None
+        self.inference_file = None
 
         # 以下数据配置在train.cfg
         # 所有数据训练多少轮
@@ -229,7 +249,7 @@ class TrainConfig(TrainBaseConfig):
         self.initial_learning_rate = None
         self.decay_steps = None
         self.decay_rate = None
-        self.max_steps = 10000000
+        self.max_steps = None
         # cks
         # loss,accuracy,val_loss,val_accuracy
         self.monitor = None
@@ -237,6 +257,8 @@ class TrainConfig(TrainBaseConfig):
         self.patience = None
         # 以上数据配置在train.cfg
 
+    # steps
+    # epochs
     def update(self, *args, **kwargs):
         print('update train config')
         self.project = ProjectConfig.getDefault().project
@@ -248,6 +270,7 @@ class TrainConfig(TrainBaseConfig):
         # self.check_point_dir = os.path.join(self.train_dir, 'check_point')
         self.log_dir = os.path.join(self.train_dir, 'logs')
         self.log_file = os.path.join(self.log_dir, 'train.log')
+        self.inference_file = os.path.join(self.model_freeze_dir, 'inference.log')
 
         try:
             base_config = configparser.ConfigParser()
@@ -267,3 +290,9 @@ class TrainConfig(TrainBaseConfig):
             self.patience = int(configs['PATIENCE'])
         except Exception as e:
             print('exception when parse, error =', e)
+
+        for key, value in kwargs.items():
+            if 'steps' == key and value is not None:
+                self.max_steps = value
+            if 'epochs' == key and value is not None:
+                self.epochs = value

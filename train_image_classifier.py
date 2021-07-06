@@ -15,6 +15,7 @@ from models.neural_network import NeuralNetwork
 
 
 def init_training_params():
+    # https://zhuanlan.zhihu.com/p/74857888
     training_params = edict(
         {
             "drop_rate": TrainBaseConfig.DROP_RATE,
@@ -64,7 +65,7 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
 
     # limit to num_cpu_core CPU usage
     # tf.compat.v1.ConfigProto
-    session_config = tf.ConfigProto(device_count={"CPU": 8},
+    session_config = tf.ConfigProto(device_count={"CPU": 4},
                                     log_device_placement=True,
                                     inter_op_parallelism_threads=2,
                                     intra_op_parallelism_threads=5)

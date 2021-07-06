@@ -19,6 +19,7 @@ def write():
                                   dataset_test_dir=TFRecordConfig.getDefault().source_image_test_dir,
                                   tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
                                   tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
+                                  input_shape=TFRecordConfig.getDefault().image_shape,
                                   thread=TFRecordBaseConfig.MAX_THREAD)
     writeTfrecord.dataset_to_tfrecord()
 

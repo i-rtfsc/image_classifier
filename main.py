@@ -8,6 +8,7 @@ import optparse
 import sys
 
 import freeze_graph
+import inference_graph
 import train_image_classifier
 from base import time_utils
 from base.log_utils import TerminalLogger
@@ -34,6 +35,10 @@ def parseargs():
                       help='time dir', default=None)
     option.add_option('-d', '--debug', dest='debug', type='int',
                       help='debug', default=0)
+    option.add_option('-s', '--steps', dest='steps', type='int',
+                      help='steps', default=None)
+    option.add_option('-e', '--epochs', dest='epochs', type='int',
+                      help='epochs', default=None)
     option.add_option('-g', '--gpu', dest='gpu', type='string',
                       help='gpu', default='1')
     parser.add_option_group(option)
@@ -64,24 +69,31 @@ def send_msg_to_bot(start_time, message):
 
 def main():
     time = None
+    steps = None
+    epochs = None
     (options, args) = parseargs()
     project = options.project.strip()
     if options.time:
         time = options.time.strip()
     if options.net:
         net = options.net.strip()
+    if options.steps:
+        steps = options.steps
+    if options.epochs:
+        epochs = options.epochs
     gpu = options.gpu.strip()
     debug = options.debug
     keras = options.keras
 
-    print('main func, project name =', project, ', keras =', keras, ', time =', time, ', net =', net, ', debug =', debug)
+    print('main func, project name =', project, ', net =', net, ', keras =', keras, ', time =', time, ', steps =',
+          steps, ', epochs =', epochs, ', debug =', debug)
 
     # step 1
     # init or update configs
     ProjectConfig.getDefault().update(project=project, keras=keras, time=time, net=net, debug=debug)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
-    TrainConfig.getDefault().update()
+    TrainConfig.getDefault().update(steps=steps, epochs=epochs)
     # TrainConfig.getDefault().__str__()
 
     # step 2
@@ -96,6 +108,7 @@ def main():
                                   dataset_test_dir=TFRecordConfig.getDefault().source_image_test_dir,
                                   tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
                                   tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
+                                  input_shape=TFRecordConfig.getDefault().image_shape,
                                   thread=TFRecordBaseConfig.MAX_THREAD)
     out_dir = writeTfrecord.dataset_to_tfrecord()
     send_msg_to_bot(start_time, '路径 = {}'.format(out_dir))
@@ -121,6 +134,21 @@ def main():
                                 output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
                                 gpu=gpu,
                                 meta_file=TFRecordConfig.getDefault().meta_file)
+
+    # step 7
+    # test model
+    totals, success, fails, percent = inference_graph.inference(model_dir=TrainConfig.getDefault().model_freeze_dir,
+                                                                test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+                                                                test_log=TrainConfig.getDefault().inference_file,
+                                                                input_tensor_name='{}:0'.format(
+                                                                    TrainBaseConfig.INPUT_TENSOR_NAME),
+                                                                output_tensor_name='{}:0'.format(
+                                                                    TrainBaseConfig.OUTPUT_TENSOR_NAME),
+                                                                shape=TFRecordConfig.getDefault().image_shape,
+                                                                gpu=gpu,
+                                                                debug=True)
+
+    send_msg_to_bot(start_time, '总数 = {} , 成功 = {} , 失败 = {} , 正确率 = {} ,'.format(totals, success, fails, percent))
 
 
 if __name__ == '__main__':

@@ -7,9 +7,7 @@ import os
 import random
 import json
 
-import numpy as np
 import tensorflow as tf
-from PIL import Image
 
 from base import file_utils
 from config.global_configs import TFRecordBaseConfig, TFRecordConfig
@@ -19,7 +17,7 @@ from tqdm import tqdm
 
 
 class ParallelFarm:
-    def __init__(self, files, output_dir, label_dict, test_files):
+    def __init__(self, files, output_dir, label_dict, test_files, shape):
         self.files = files
         self.test_files = test_files
         self.output_dir = output_dir
@@ -29,6 +27,7 @@ class ParallelFarm:
         self.group_files = {}
         self.source_list = []
         self.batch_list = {}
+        self.input_shape = {}
 
         self.group_numbers[TFRecordBaseConfig.TRAIN] = int(
             len(files) * TFRecordBaseConfig.TRAIN_SET_RATIO)
@@ -65,6 +64,10 @@ class ParallelFarm:
         else:
             self.group_files[TFRecordBaseConfig.TEST] = list()
         self.batch_list[TFRecordBaseConfig.TEST] = []
+        self.input_shape[TFRecordBaseConfig.WIDTH] = shape[0]
+        self.input_shape[TFRecordBaseConfig.HEIGHT] = shape[1]
+        self.input_shape[TFRecordBaseConfig.CHANNELS] = shape[2]
+
 
     def dump_meta_json(self, extra_params=None):
         with open(TFRecordConfig.getDefault().meta_file, 'w') as f:
@@ -86,11 +89,13 @@ class WriteTfrecord(BaseTfrecord):
                  dataset_test_dir=TFRecordConfig.getDefault().source_image_test_dir,
                  tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
                  tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
+                 input_shape=TFRecordConfig.getDefault().image_shape,
                  thread=TFRecordBaseConfig.MAX_THREAD):
         self.dataset_dir = dataset_dir
         self.dataset_test_dir = dataset_test_dir
         self.tf_records_output_dir = tf_records_output_dir
         self.tf_records_meta_file = tf_records_meta_file
+        self.input_shape = input_shape
         self.thread = thread
 
     def work(self, files, tfrecord_name, group_numbers, group, labels_and_index):
@@ -100,15 +105,9 @@ class WriteTfrecord(BaseTfrecord):
             # for file in tqdm(files, desc=os.path.basename(tfrecord_name)):
             for file in files:
                 label = labels_and_index[os.path.basename(os.path.dirname(file))]
-                print("Writing to tfrecord: {}, file:{}, label:{}".format(tfrecord_name, file, label))
-                # image = tf.io.decode_jpeg(tf.io.read_file(file))
-                image = Image.open(file)
-                # image = image.convert('RGB')
-                # image = image.resize((224, 224))
-                image = np.array(image).tobytes()
-
+                print("Writing to tfrecord = {}, file = {}, label = {}".format(tfrecord_name, file, label))
                 try:
-                    tf_example = self.create_image_example(image, label)
+                    tf_example = self.create_image_example(file, label)
                     if tf_example:
                         writer.write(tf_example.SerializeToString())
                     else:
@@ -138,7 +137,7 @@ class WriteTfrecord(BaseTfrecord):
             image_test_paths, _, _ = file_utils.get_images_and_labels(self.dataset_test_dir)
             random.shuffle(image_test_paths)
 
-        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index, image_test_paths)
+        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index, image_test_paths, self.input_shape)
         executor = ThreadPoolExecutor(max_workers=self.thread)
         tasks = []
 

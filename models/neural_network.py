@@ -48,10 +48,10 @@ class NeuralNetwork(object):
         }
 
         self.arg_scopes_map = {
-            'mobilenet_v0': mobilenet_v1.mobilenet_v1_arg_scope,
-            'mobilenet_v0_075': mobilenet_v1.mobilenet_v1_arg_scope,
-            'mobilenet_v0_050': mobilenet_v1.mobilenet_v1_arg_scope,
-            'mobilenet_v0_025': mobilenet_v1.mobilenet_v1_arg_scope,
+            'mobilenet_v0': mobilenet_v0.mobilenet_v0_arg_scope,
+            'mobilenet_v0_075': mobilenet_v0.mobilenet_v0_arg_scope,
+            'mobilenet_v0_050': mobilenet_v0.mobilenet_v0_arg_scope,
+            'mobilenet_v0_025': mobilenet_v0.mobilenet_v0_arg_scope,
 
             'mobilenet_v1': mobilenet_v1.mobilenet_v1_arg_scope,
             'mobilenet_v1_075': mobilenet_v1.mobilenet_v1_arg_scope,
@@ -101,6 +101,7 @@ class NeuralNetwork(object):
                                          input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
                                          output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME)
                 break
+
             if case('simple_net'):
                 base_model = SimpleNet(num_classes=self.num_classes,
                                        input_shape=input_shape,
@@ -136,11 +137,11 @@ class NeuralNetwork(object):
     # https://tensorflow.juejin.im/get_started/custom_estimators.html
     @staticmethod
     def build_network(features, labels, mode, params):
-        images = features[TFRecordBaseConfig.IMAGE]
-
+        # Define model structure
         neural_network = NeuralNetwork(
             network=ProjectConfig.getDefault().net,
             num_classes=TFRecordConfig.getDefault().num_classes,
+            is_training=(mode == tf.estimator.ModeKeys.TRAIN)
         )
         network = neural_network.init_network()
 
@@ -149,16 +150,18 @@ class NeuralNetwork(object):
         else:
             dropout_keep_prob = 1
 
-        logits, endpoints = network(images, dropout_keep_prob=dropout_keep_prob)
+        logits, endpoints = network(features[TFRecordBaseConfig.IMAGE], dropout_keep_prob=dropout_keep_prob)
 
+        # Define the loss functions
         if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL):
             global_step = tf.train.get_or_create_global_step()
             label_one_hot = tf.one_hot(labels[TFRecordBaseConfig.LABEL], params.num_classes)
             loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(onehot_labels=label_one_hot, logits=logits))
-            tf.summary.scalar('cross_entropy', loss)
+            # tf.summary.scalar('softmax_cross_entropy', loss)
 
         predictions = tf.argmax(tf.nn.softmax(logits), axis=-1, name="final_output")
 
+        # now return these EstimatorSpec
         if mode == tf.estimator.ModeKeys.TRAIN:
             decay_learning_rate = tf.train.exponential_decay(
                 learning_rate=params.learning_rate,
@@ -171,6 +174,7 @@ class NeuralNetwork(object):
                 g = tf.get_default_graph()
                 tf.contrib.quantize.create_training_graph(input_graph=g, quant_delay=params.quant_delay)
 
+            # Define optimizer
             optimizer = tf.train.AdamOptimizer(learning_rate=decay_learning_rate)
             train_op = optimizer.minimize(loss, global_step)
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
@@ -179,6 +183,7 @@ class NeuralNetwork(object):
             g = tf.get_default_graph()
             tf.contrib.quantize.create_eval_graph(input_graph=g)
 
+        # Additional metrics for monitoring
         if mode == tf.estimator.ModeKeys.EVAL:
             accuracy = tf.metrics.accuracy(labels=labels[TFRecordBaseConfig.LABEL], predictions=predictions)
             tf.summary.scalar('accuracy', accuracy)
@@ -187,6 +192,7 @@ class NeuralNetwork(object):
             }
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
+        # Generate predictions
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions_dict = {
                 "predictions": predictions
@@ -198,23 +204,29 @@ class NeuralNetwork(object):
 
     @staticmethod
     def build_keras_network(features, labels, mode, params):
+        num_classes = params['num_classes']
         neural_network = NeuralNetwork(
             network=ProjectConfig.getDefault().net,
-            num_classes=TFRecordConfig.getDefault().num_classes,
+            num_classes=num_classes,
         )
         network, _ = neural_network.init_keras_network_without_build()
 
+        # logits = tf.layers.dense(inputs=network.predict(features[TFRecordBaseConfig.IMAGE]),
+        #                          units=num_classes)
+        # https://stackoverflow.com/questions/48295788/using-a-keras-model-inside-a-tf-estimator
         feature_map = network(features)
-        logits = tf.keras.layers.Dense(units=params['num_classes'])(feature_map)
+        logits = tf.keras.layers.Dense(units=num_classes)(feature_map)
 
+        # Define the loss functions
         if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL):
             global_step = tf.train.get_or_create_global_step()
             label_one_hot = tf.one_hot(labels[TFRecordBaseConfig.LABEL], params.num_classes)
             loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(onehot_labels=label_one_hot, logits=logits))
-            tf.summary.scalar('cross_entropy', loss)
+            tf.summary.scalar('softmax_cross_entropy', loss)
 
         predictions = tf.argmax(tf.nn.softmax(logits), axis=-1, name="final_output")
 
+        # now return these EstimatorSpec
         if mode == tf.estimator.ModeKeys.TRAIN:
             decay_learning_rate = tf.train.exponential_decay(
                 learning_rate=params.learning_rate,
@@ -227,6 +239,7 @@ class NeuralNetwork(object):
                 g = tf.get_default_graph()
                 tf.contrib.quantize.create_training_graph(input_graph=g, quant_delay=params.quant_delay)
 
+            # Define optimizer
             optimizer = tf.train.AdamOptimizer(learning_rate=decay_learning_rate)
             train_op = optimizer.minimize(loss, global_step)
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
@@ -235,6 +248,7 @@ class NeuralNetwork(object):
             g = tf.get_default_graph()
             tf.contrib.quantize.create_eval_graph(input_graph=g)
 
+        # Additional metrics for monitoring
         if mode == tf.estimator.ModeKeys.EVAL:
             accuracy = tf.metrics.accuracy(labels=labels[TFRecordBaseConfig.LABEL], predictions=predictions)
             tf.summary.scalar('accuracy', accuracy)
@@ -243,6 +257,7 @@ class NeuralNetwork(object):
             }
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
+        # Generate predictions
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions_dict = {
                 "predictions": predictions

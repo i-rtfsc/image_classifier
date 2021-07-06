@@ -51,8 +51,8 @@ slim = tf.contrib.slim
 Conv = namedtuple('Conv', ['kernel', 'stride', 'depth'])
 DepthSepConv = namedtuple('DepthSepConv', ['kernel', 'stride', 'depth'])
 
-# MOBILENETV0_CONV_DEFS specifies the MobileNet body
-_CONV_DEFS = [
+# specifies the MobileNet body
+MOBILENETV0_CONV_DEFS = [
     Conv(kernel=[3, 3], stride=2, depth=32),
     DepthSepConv(kernel=[3, 3], stride=1, depth=64),
     DepthSepConv(kernel=[3, 3], stride=2, depth=128),
@@ -80,7 +80,7 @@ def mobilenet_v0_base(inputs,
         raise ValueError('depth_multiplier is not greater than zero.')
 
     if conv_defs is None:
-        conv_defs = _CONV_DEFS
+        conv_defs = MOBILENETV0_CONV_DEFS
 
     if output_stride is not None and output_stride not in [8, 16, 32]:
         raise ValueError('Only allowed output_stride values are 8, 16, 32.')
@@ -165,47 +165,9 @@ def mobilenet_v0(inputs,
                  prediction_fn=tf.contrib.layers.softmax,
                  spatial_squeeze=True,
                  reuse=None,
-                 scope='MobilenetV1',
+                 scope='MobilenetV0',
                  global_pool=False,
                  final_endpoint="Conv2d_8_pointwise"):
-    """Mobilenet v1 model for classification.
-
-    Args:
-      inputs: a tensor of shape [batch_size, height, width, channels].
-      num_classes: number of predicted classes. If 0 or None, the logits layer
-        is omitted and the input features to the logits layer (before dropout)
-        are returned instead.
-      dropout_keep_prob: the percentage of activation values that are retained.
-      is_training: whether is training or not.
-      min_depth: Minimum depth value (number of channels) for all convolution ops.
-        Enforced when depth_multiplier < 1, and not an active constraint when
-        depth_multiplier >= 1.
-      depth_multiplier: Float multiplier for the depth (number of channels)
-        for all convolution ops. The value must be greater than zero. Typical
-        usage will be to set this value in (0, 1) to reduce the number of
-        parameters or computation cost of the model.
-      conv_defs: A list of ConvDef namedtuples specifying the net architecture.
-      prediction_fn: a function to get predictions out of logits.
-      spatial_squeeze: if True, logits is of shape is [B, C], if false logits is
-          of shape [B, 1, 1, C], where B is batch_size and C is number of classes.
-      reuse: whether or not the network and its variables should be reused. To be
-        able to reuse 'scope' must be given.
-      scope: Optional variable_scope.
-      global_pool: Optional boolean flag to control the avgpooling before the
-        logits layer. If false or unset, pooling is done with a fixed window
-        that reduces default-sized inputs to 1x1, while larger inputs lead to
-        larger outputs. If true, any input size is pooled down to 1x1.
-
-    Returns:
-      net: a 2D Tensor with the logits (pre-softmax activations) if num_classes
-        is a non-zero integer, or the non-dropped-out input to the logits layer
-        if num_classes is 0 or None.
-      end_points: a dictionary from components of the network to the corresponding
-        activation.
-
-    Raises:
-      ValueError: Input rank is invalid.
-    """
     input_shape = inputs.get_shape().as_list()
     if len(input_shape) != 4:
         raise ValueError('Invalid input tensor rank, expected 4, was: %d' %
@@ -274,7 +236,7 @@ def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
     return kernel_size_out
 
 
-def mobilenet_v1_arg_scope(is_training=True,
+def mobilenet_v0_arg_scope(is_training=True,
                            weight_decay=0.00004,
                            stddev=0.09,
                            regularize_depthwise=False,
@@ -288,7 +250,7 @@ def mobilenet_v1_arg_scope(is_training=True,
       regularize_depthwise: Whether or not apply regularization on depthwise.
 
     Returns:
-      An `arg_scope` to use for the mobilenet v1 model.
+      An `arg_scope` to use for the mobilenet v0 model.
     """
     batch_norm_params = {
         'is_training': is_training,

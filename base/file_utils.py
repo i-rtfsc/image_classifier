@@ -12,6 +12,21 @@ def create_directory(directory):
         os.makedirs(directory)
 
 
+def get_last_directory(file):
+    return os.path.basename(os.path.dirname(file))
+
+
+def check_file(file, postfix):
+    fake_file = "."
+    real = False
+    if file.endswith(postfix):
+        real = True
+    if file.startswith(fake_file):
+        real = False
+
+    return real
+
+
 def get_images_and_labels(data_root_dir):
     # get all images' paths (format: string)
     data_root = pathlib.Path(data_root_dir)
