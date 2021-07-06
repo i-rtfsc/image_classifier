@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 
 class ParallelFarm:
-    def __init__(self, files, output_dir, label_dict, test_files, shape):
+    def __init__(self, files, output_dir, label_dict, test_files, shape, is_keras):
         self.files = files
         self.test_files = test_files
         self.output_dir = output_dir
@@ -28,6 +28,7 @@ class ParallelFarm:
         self.source_list = []
         self.batch_list = {}
         self.input_shape = {}
+        self.is_keras = is_keras
 
         self.group_numbers[TFRecordBaseConfig.TRAIN] = int(
             len(files) * TFRecordBaseConfig.TRAIN_SET_RATIO)
@@ -68,11 +69,12 @@ class ParallelFarm:
         self.input_shape[TFRecordBaseConfig.HEIGHT] = shape[1]
         self.input_shape[TFRecordBaseConfig.CHANNELS] = shape[2]
 
-
     def dump_meta_json(self, extra_params=None):
         with open(TFRecordConfig.getDefault().meta_file, 'w') as f:
             content = {
                 TFRecordBaseConfig.GROUP_NUMBER: self.group_numbers,
+                TFRecordBaseConfig.INPUT_SHAPE: self.input_shape,
+                TFRecordBaseConfig.IS_KERAS: self.is_keras,
                 TFRecordBaseConfig.TRAIN_TFRECORD_LIST: self.batch_list[TFRecordBaseConfig.TRAIN],
                 TFRecordBaseConfig.VAL_TFRECORD_LIST: self.batch_list[TFRecordBaseConfig.VAL],
                 TFRecordBaseConfig.TEST_TFRECORD_LIST: self.batch_list[TFRecordBaseConfig.TEST],
@@ -90,12 +92,14 @@ class WriteTfrecord(BaseTfrecord):
                  tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
                  tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
                  input_shape=TFRecordConfig.getDefault().image_shape,
+                 is_keras=0,
                  thread=TFRecordBaseConfig.MAX_THREAD):
         self.dataset_dir = dataset_dir
         self.dataset_test_dir = dataset_test_dir
         self.tf_records_output_dir = tf_records_output_dir
         self.tf_records_meta_file = tf_records_meta_file
         self.input_shape = input_shape
+        self.is_keras = is_keras
         self.thread = thread
 
     def work(self, files, tfrecord_name, group_numbers, group, labels_and_index):
@@ -105,9 +109,9 @@ class WriteTfrecord(BaseTfrecord):
             # for file in tqdm(files, desc=os.path.basename(tfrecord_name)):
             for file in files:
                 label = labels_and_index[os.path.basename(os.path.dirname(file))]
-                print("Writing to tfrecord = {}, file = {}, label = {}".format(tfrecord_name, file, label))
+                # print("Writing to tfrecord = {}, file = {}, label = {}".format(tfrecord_name, file, label))
                 try:
-                    tf_example = self.create_image_example(file, label)
+                    tf_example = self.create_image_example(file, label, self.is_keras)
                     if tf_example:
                         writer.write(tf_example.SerializeToString())
                     else:
@@ -137,7 +141,8 @@ class WriteTfrecord(BaseTfrecord):
             image_test_paths, _, _ = file_utils.get_images_and_labels(self.dataset_test_dir)
             random.shuffle(image_test_paths)
 
-        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index, image_test_paths, self.input_shape)
+        farm = ParallelFarm(image_paths, self.tf_records_output_dir, labels_and_index, image_test_paths,
+                            self.input_shape, self.is_keras)
         executor = ThreadPoolExecutor(max_workers=self.thread)
         tasks = []
 

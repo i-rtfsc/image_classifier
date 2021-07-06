@@ -142,6 +142,7 @@ class TFRecordBaseConfig(BaseConfig):
     VAL = 'val'
     TEST = 'test'
     INPUT_SHAPE = 'input_shape'
+    IS_KERAS = 'is_keras'
     WIDTH = 'width'
     HEIGHT = 'height'
     CHANNELS = 'channels'
@@ -235,10 +236,11 @@ class TrainConfig(TrainBaseConfig):
         self.train_dir = None
         self.model_freeze_dir = None
         self.train_best_export_dir = None
-        # self.check_point_dir = None
+        self.check_point_dir = None
         self.final_dir = None
         self.log_dir = None
         self.log_file = None
+        self.csv_log_file = None
         self.inference_file = None
 
         # 以下数据配置在train.cfg
@@ -266,10 +268,10 @@ class TrainConfig(TrainBaseConfig):
         self.model_freeze_dir = os.path.join(ProjectConfig.getDefault().out, 'freeze_model')
         self.train_best_export_dir = os.path.join(self.train_dir, 'export', self.BEST_EXPORT)
         self.final_dir = os.path.join(self.train_dir, 'export', self.FINAL_EXPORT)
-
-        # self.check_point_dir = os.path.join(self.train_dir, 'check_point')
+        self.check_point_dir = os.path.join(self.train_dir, 'check_point')
         self.log_dir = os.path.join(self.train_dir, 'logs')
         self.log_file = os.path.join(self.log_dir, 'train.log')
+        self.csv_log_file = os.path.join(self.log_dir, 'csv_train.log')
         self.inference_file = os.path.join(self.model_freeze_dir, 'inference.log')
 
         try:

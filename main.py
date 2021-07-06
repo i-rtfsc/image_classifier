@@ -109,6 +109,7 @@ def main():
                                   tf_records_output_dir=TFRecordConfig.getDefault().tfrecord_dir,
                                   tf_records_meta_file=TFRecordConfig.getDefault().meta_file,
                                   input_shape=TFRecordConfig.getDefault().image_shape,
+                                  is_keras=keras,
                                   thread=TFRecordBaseConfig.MAX_THREAD)
     out_dir = writeTfrecord.dataset_to_tfrecord()
     send_msg_to_bot(start_time, '路径 = {}'.format(out_dir))
@@ -117,10 +118,19 @@ def main():
     # get dataset from tfrecord
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_DATASET)
     readTfrecord = ReadTfrecord(num_classes=TFRecordConfig.getDefault().num_classes,
+                                is_keras=keras,
                                 train_tfrecord_list=TFRecordConfig.getDefault().train_tfrecord_list,
                                 val_tfrecord_list=TFRecordConfig.getDefault().val_tfrecord_list,
                                 test_tfrecord_list=TFRecordConfig.getDefault().test_tfrecord_list)
     train_dataset, valid_dataset, test_dataset = readTfrecord.get_datasets()
+
+    if keras == 1:
+        from keras import keras_train_image_classifier
+        # step 5
+        # running train
+        keras_train_image_classifier.train(train_dataset, valid_dataset, test_dataset, gpu)
+        return 1
+
 
     # step 5
     # running train

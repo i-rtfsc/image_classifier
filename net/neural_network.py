@@ -8,13 +8,6 @@ import tensorflow as tf
 from config.global_configs import TFRecordBaseConfig, ProjectConfig, TFRecordConfig, TrainBaseConfig, TrainConfig
 
 from base.switch_utils import switch, case
-from models import mobilenet_v0
-from models import mobilenet_v1
-from models.keras.simple_net import SimpleNet
-from models.keras.mobilenet_v0 import MobileNetV0
-from models.keras.mobilenet_v1 import MobileNetV1
-
-slim = tf.contrib.slim
 
 
 class NeuralNetwork(object):
@@ -28,7 +21,12 @@ class NeuralNetwork(object):
         self.num_classes = num_classes
         self.is_training = is_training
 
-        self.networks_map = {
+    def init_network(self):
+        from net import mobilenet_v0
+        from net import mobilenet_v1
+        slim = tf.contrib.slim
+
+        networks_map = {
             'mobilenet_v0': mobilenet_v0.mobilenet_v0,
             'mobilenet_v0_075': mobilenet_v0.mobilenet_v0_075,
             'mobilenet_v0_050': mobilenet_v0.mobilenet_v0_050,
@@ -38,16 +36,9 @@ class NeuralNetwork(object):
             'mobilenet_v1_075': mobilenet_v1.mobilenet_v1_075,
             'mobilenet_v1_050': mobilenet_v1.mobilenet_v1_050,
             'mobilenet_v1_025': mobilenet_v1.mobilenet_v1_025,
-
-            # 'mobilenet_v2': mobilenet_v2.mobilenet,
-            # 'mobilenet_v2_140': mobilenet_v2.mobilenet_v2_140,
-            # 'mobilenet_v2_035': mobilenet_v2.mobilenet_v2_035,
-
-            # 'mobilenet_v3_small': mobilenet_v3.small,
-            # 'mobilenet_v3_large': mobilenet_v3.large,
         }
 
-        self.arg_scopes_map = {
+        arg_scopes_map = {
             'mobilenet_v0': mobilenet_v0.mobilenet_v0_arg_scope,
             'mobilenet_v0_075': mobilenet_v0.mobilenet_v0_arg_scope,
             'mobilenet_v0_050': mobilenet_v0.mobilenet_v0_arg_scope,
@@ -57,24 +48,15 @@ class NeuralNetwork(object):
             'mobilenet_v1_075': mobilenet_v1.mobilenet_v1_arg_scope,
             'mobilenet_v1_050': mobilenet_v1.mobilenet_v1_arg_scope,
             'mobilenet_v1_025': mobilenet_v1.mobilenet_v1_arg_scope,
-
-            # 'mobilenet_v2': mobilenet_v2.training_scope,
-            # 'mobilenet_v2_035': mobilenet_v2.training_scope,
-            # 'mobilenet_v2_140': mobilenet_v2.training_scope,
-
-            # 'mobilenet_v3_small': mobilenet_v3.training_scope,
-            # 'mobilenet_v3_large': mobilenet_v3.training_scope,
         }
 
-    def init_network(self):
-
-        if self.network not in self.networks_map:
+        if self.network not in networks_map:
             raise ValueError(self.network, ' neural network is not supported at this time.')
-        func = self.networks_map[self.network]
+        func = networks_map[self.network]
 
         @functools.wraps(func)
         def network_fn(images, **kwargs):
-            arg_scope = self.arg_scopes_map[self.network](is_training=self.is_training)
+            arg_scope = arg_scopes_map[self.network](is_training=self.is_training)
             with slim.arg_scope(arg_scope):
                 return func(images, self.num_classes, is_training=self.is_training, **kwargs)
 
@@ -83,30 +65,33 @@ class NeuralNetwork(object):
 
         return network_fn
 
-    def init_keras_network_without_build(self):
-        # input_shape = (None, *TFRecordConfig.getDefault().image_shape)
-        input_shape = TFRecordConfig.getDefault().image_shape
+    def init_keras_network_without_build(self, input_shape=TFRecordConfig.getDefault().image_shape,
+                                         input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
+                                         output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME
+                                         ):
+        from keras.net.simple_net import SimpleNet
+        from keras.net.mobilenet_v0 import MobileNetV0
+        from keras.net.mobilenet_v1 import MobileNetV1
 
         while switch(self.network):
+            if case('simple_net'):
+                base_model = SimpleNet(num_classes=self.num_classes,
+                                       input_shape=input_shape,
+                                       input_tensor_name=input_tensor_name,
+                                       output_tensor_name=output_tensor_name)
+                break
             if case('mobilenet_v0'):
                 base_model = MobileNetV0(num_classes=self.num_classes,
                                          input_shape=input_shape,
-                                         input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
-                                         output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME)
+                                         input_tensor_name=input_tensor_name,
+                                         output_tensor_name=output_tensor_name)
                 break
 
             if case('mobilenet_v1'):
                 base_model = MobileNetV1(num_classes=self.num_classes,
                                          input_shape=input_shape,
-                                         input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
-                                         output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME)
-                break
-
-            if case('simple_net'):
-                base_model = SimpleNet(num_classes=self.num_classes,
-                                       input_shape=input_shape,
-                                       input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
-                                       output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME)
+                                         input_tensor_name=input_tensor_name,
+                                         output_tensor_name=output_tensor_name)
                 break
 
             ValueError('This cnn neural network is not supported at this time.')
@@ -116,20 +101,29 @@ class NeuralNetwork(object):
         for layer in base_model.layers:
             network.add(layer)
 
-        return network, input_shape
+        return network
 
-    def init_keras_network(self):
-        network, input_shape = self.init_keras_network_without_build()
-
+    def init_keras_network(self, input_shape=TFRecordConfig.getDefault().image_shape,
+                           input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
+                           output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
+                           convert=True):
+        network = self.init_keras_network_without_build(input_shape=input_shape,
+                                                        input_tensor_name=input_tensor_name,
+                                                        output_tensor_name=output_tensor_name)
         network.build(input_shape=input_shape)
         network.summary()
+
+        if convert:
+            loss = 'categorical_crossentropy'
+        else:
+            loss = tf.losses.CategoricalCrossentropy(from_logits=True)
 
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=TrainConfig.getDefault().initial_learning_rate,
             decay_steps=TrainConfig.getDefault().decay_steps,
             decay_rate=TrainConfig.getDefault().decay_rate)
         network.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule),
-                        loss='categorical_crossentropy',
+                        loss=loss,
                         metrics=TrainBaseConfig.METRICS)
 
         return network
@@ -209,7 +203,10 @@ class NeuralNetwork(object):
             network=ProjectConfig.getDefault().net,
             num_classes=num_classes,
         )
-        network, _ = neural_network.init_keras_network_without_build()
+        network = neural_network.init_keras_network_without_build(
+            input_shape=TFRecordConfig.getDefault().image_shape,
+            input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
+            output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME)
 
         # logits = tf.layers.dense(inputs=network.predict(features[TFRecordBaseConfig.IMAGE]),
         #                          units=num_classes)

@@ -11,7 +11,7 @@ from base import env_utils
 from config.global_configs import TrainBaseConfig, \
     TrainConfig, TFRecordBaseConfig, TFRecordConfig, ProjectConfig
 from hook_and_exporter import BetterExporter, EvalEarlyStoppingHook, TrainEarlyStoppingHook
-from models.neural_network import NeuralNetwork
+from net.neural_network import NeuralNetwork
 
 
 def init_training_params():
@@ -83,7 +83,10 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
         #     network=ProjectConfig.getDefault().net,
         #     num_classes=TFRecordConfig.getDefault().num_classes,
         # )
-        # keras_network = neural_network.init_keras_network()
+        # keras_network = neural_network.init_keras_network(input_shape=TFRecordConfig.getDefault().image_shape,
+        #                                                   input_tensor_name=TrainBaseConfig.INPUT_TENSOR_NAME,
+        #                                                   output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
+        #                                                   convert=True)
         #
         # # 如果用这种方式训练，返回的dataset是image, classifier
         # # readTfrecord.get_keras_datasets()

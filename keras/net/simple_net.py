@@ -5,7 +5,7 @@
 
 import tensorflow as tf
 
-from models.keras.base_model import BaseModel
+from keras.net.base_model import BaseModel
 
 
 class SimpleNet(BaseModel):
