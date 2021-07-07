@@ -78,20 +78,20 @@ def work_impl(sess, predict_softmax_tensor, input_tensor, task_name, files, labe
             global fails
             fails += 1
             result['error'].append([real_label, ai_label, file, logits])
+            print('real label =', real_label, ', ai label =', ai_label, ', prob =', logits[0][index], ', file =', file)
 
     return ''
 
 
-def inference(model_dir='',
-              test_dir='',
-              test_log='',
-              input_tensor_name='input:0',
-              output_tensor_name='Softmax:0',
-              shape=(240, 108, 3),
-              rect=None,
-              gpu='2',
-              debug=False):
-    print(shape)
+def predict(model_dir='',
+            test_dir='',
+            test_log='',
+            input_tensor_name='input:0',
+            output_tensor_name='Softmax:0',
+            shape=(240, 108, 3),
+            rect=None,
+            gpu='2',
+            debug=False):
     frozen_graph_file = None
     label_file = None
     for model in os.listdir(model_dir):
@@ -107,7 +107,6 @@ def inference(model_dir='',
     if not os.path.exists(label_file):
         return None
 
-    labels = []
     with open(label_file, 'r') as file:
         _data = json.load(file)
         labels = _data['labels']
@@ -176,20 +175,20 @@ def inference(model_dir='',
 
 
 if __name__ == '__main__':
-    project = 'rank_region_classifier'
-    time = '20210705-1718'
-
+    project = None
+    time = None
+    gpu = '3'
     ProjectConfig.getDefault().update(project=project, time=time)
     UserConfig.getDefault().update()
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_DATASET)
     TrainConfig.getDefault().update()
 
-    inference(model_dir=TrainConfig.getDefault().model_freeze_dir,
-              test_dir=TFRecordConfig.getDefault().source_image_test_dir,
-              test_log=TrainConfig.getDefault().inference_file,
-              input_tensor_name='{}:0'.format(TrainBaseConfig.INPUT_TENSOR_NAME),
-              output_tensor_name='{}:0'.format(TrainBaseConfig.OUTPUT_TENSOR_NAME),
-              shape=TFRecordConfig.getDefault().image_shape,
-              gpu=2,
-              debug=True)
+    predict(model_dir=TrainConfig.getDefault().model_freeze_dir,
+            test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+            test_log=TrainConfig.getDefault().inference_file,
+            input_tensor_name='{}:0'.format(TrainBaseConfig.INPUT_TENSOR_NAME),
+            output_tensor_name='{}:0'.format(TrainBaseConfig.OUTPUT_TENSOR_NAME),
+            shape=TFRecordConfig.getDefault().image_shape,
+            gpu=gpu,
+            debug=False)

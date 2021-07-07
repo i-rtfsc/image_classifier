@@ -11,28 +11,36 @@ from base import env_utils
 from config.global_configs import TrainBaseConfig, \
     TrainConfig, TFRecordBaseConfig, TFRecordConfig, ProjectConfig
 from hook_and_exporter import BetterExporter, EvalEarlyStoppingHook, TrainEarlyStoppingHook
-from net.neural_network import NeuralNetwork
+from nets.neural_network import NeuralNetwork
 
 
 def init_training_params():
     # https://zhuanlan.zhihu.com/p/74857888
     training_params = edict(
         {
-            "drop_rate": TrainBaseConfig.DROP_RATE,
-            "learning_rate": TrainConfig.getDefault().initial_learning_rate,
-            "decay_steps": TrainConfig.getDefault().decay_steps,
-            "decay_rate": TrainConfig.getDefault().decay_rate,
-            "num_classes": TFRecordConfig.getDefault().num_classes,
-            "batch_size": TFRecordBaseConfig.BATCH_SIZE,
-            "evaluation_step": TrainBaseConfig.EVALUATION_STEP,
-            "max_steps": TrainConfig.getDefault().max_steps,
-            "early_stopping_patience": TrainBaseConfig.EARLY_STOPPING_PATIENCE,
-            "eval_throttle_secs": TrainBaseConfig.EVAL_THROTTLE_SECS,
-            "save_checkpoints_secs": TrainBaseConfig.SAVE_CHECKPOINTS_SECS,
-            "eval_start_delay_secs": TrainBaseConfig.EVAL_START_DELAY_SECS,
-            "shuffle_buffer_size": TrainBaseConfig.SHUFFLE_BUFFER_SIZE,
-            "quant": TrainBaseConfig.QUANT,
-            "quant_delay": TrainBaseConfig.QUANT_DELAY
+            'drop_rate': TrainBaseConfig.DROP_RATE,
+            'learning_rate': TrainConfig.getDefault().initial_learning_rate,
+            'decay_steps': TrainConfig.getDefault().decay_steps,
+            'decay_rate': TrainConfig.getDefault().decay_rate,
+            'num_classes': TFRecordConfig.getDefault().num_classes,
+            'batch_size': TFRecordBaseConfig.BATCH_SIZE,
+            'evaluation_step': TrainBaseConfig.EVALUATION_STEP,
+            'max_steps': TrainConfig.getDefault().max_steps,
+            'early_stopping_patience': TrainBaseConfig.EARLY_STOPPING_PATIENCE,
+            'eval_throttle_secs': TrainBaseConfig.EVAL_THROTTLE_SECS,
+            'save_checkpoints_secs': TrainBaseConfig.SAVE_CHECKPOINTS_SECS,
+            'keep_checkpoint_max': TrainBaseConfig.KEEP_CHECKPOINT_MAX,
+            'eval_start_delay_secs': TrainBaseConfig.EVAL_START_DELAY_SECS,
+            'shuffle_buffer_size': TrainBaseConfig.SHUFFLE_BUFFER_SIZE,
+            'quant': TrainBaseConfig.QUANT,
+            'quant_delay': TrainBaseConfig.QUANT_DELAY,
+            'exports_to_keep': TrainBaseConfig.EXPORTS_TO_KEEP,
+            'net': ProjectConfig.getDefault().net,
+            'input_tensor_name': TrainBaseConfig.INPUT_TENSOR_NAME,
+            'output_tensor_name': TrainBaseConfig.OUTPUT_TENSOR_NAME,
+            'image': TFRecordBaseConfig.IMAGE,
+            'label': TFRecordBaseConfig.LABEL,
+            'shape': TFRecordConfig.getDefault().image_shape,
         }
     )
     return training_params
@@ -72,7 +80,8 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
     session_config.gpu_options.allow_growth = True
     # session_config.gpu_options.per_process_gpu_memory_fraction = 0.9
     estimator_config = tf.estimator.RunConfig(session_config=session_config,
-                                              save_checkpoints_secs=training_params.save_checkpoints_secs)
+                                              save_checkpoints_secs=training_params.save_checkpoints_secs,
+                                              keep_checkpoint_max=training_params.keep_checkpoint_max)
 
     # build estimator
 
@@ -134,7 +143,7 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
     #                                             serving_input_receiver_fn=serving_input_receiver_fn, exports_to_keep=5)
     better_exporter = BetterExporter(TrainBaseConfig.BEST_EXPORT,
                                      serving_input_receiver_fn=serving_input_receiver_fn,
-                                     exports_to_keep=5)
+                                     exports_to_keep=training_params.exports_to_keep)
 
     final_exporter = tf.estimator.FinalExporter(TrainBaseConfig.FINAL_EXPORT,
                                                 serving_input_receiver_fn=serving_input_receiver_fn)

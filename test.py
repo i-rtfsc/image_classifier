@@ -7,8 +7,8 @@ from dataset.write_tfrecord import WriteTfrecord
 
 
 def write():
-    project = 'mnist_region_classifier'
-    time = '2021-07-03'
+    project = 'mnist_image_classifier'
+    time = '202107033-1911'
     net = 'mobilenet_v0'
     ProjectConfig.getDefault().update(project=project, time=time, net=net)
     UserConfig.getDefault().update()

@@ -10,11 +10,11 @@ import shutil
 import tensorflow as tf
 
 from base import time_utils
-from keras import keras2pb, keras_inference_graph, keras_inference_model
+from keras import keras2pb, keras_predict_graph, keras_predict_model
 from keras.callbacks import TrainCallback
 from config.global_configs import ProjectConfig, TrainBaseConfig, \
     TrainConfig, TFRecordConfig, UserConfig
-from net.neural_network import NeuralNetwork
+from nets.neural_network import NeuralNetwork
 
 
 def send_msg_to_bot(start_time, message):
@@ -93,12 +93,12 @@ def train(train_dataset, valid_dataset, test_dataset, gpu):
     shutil.copy(TFRecordConfig.getDefault().meta_file, TrainConfig.getDefault().final_dir)
 
     # inference model
-    keras_inference_model.inference(model_dir=TrainConfig.getDefault().final_dir,
-                                    test_dir=TFRecordConfig.getDefault().source_image_test_dir,
-                                    width=TFRecordConfig.getDefault().image_width,
-                                    height=TFRecordConfig.getDefault().image_height,
-                                    channel=TFRecordConfig.getDefault().channels,
-                                    debug=True)
+    keras_predict_model.predict(model_dir=TrainConfig.getDefault().final_dir,
+                                test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+                                width=TFRecordConfig.getDefault().image_width,
+                                height=TFRecordConfig.getDefault().image_height,
+                                channel=TFRecordConfig.getDefault().channels,
+                                debug=True)
 
     send_msg_to_bot(start_time,
                     '训练完成\ntest loss & test acc = {}\n模型路径 = {}'.format(results, TrainConfig.getDefault().model_dir))
@@ -113,12 +113,12 @@ def train(train_dataset, valid_dataset, test_dataset, gpu):
 
     # TODO
     # inference graph
-    keras_inference_graph.inference(model_dir=TrainConfig.getDefault().final_dir,
-                                    test_dir=TFRecordConfig.getDefault().source_image_test_dir,
-                                    width=TFRecordConfig.getDefault().image_width,
-                                    height=TFRecordConfig.getDefault().image_height,
-                                    channel=TFRecordConfig.getDefault().channels,
-                                    debug=True)
+    keras_predict_graph.predict(model_dir=TrainConfig.getDefault().final_dir,
+                                test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+                                width=TFRecordConfig.getDefault().image_width,
+                                height=TFRecordConfig.getDefault().image_height,
+                                channel=TFRecordConfig.getDefault().channels,
+                                debug=True)
 
     if ProjectConfig.getDefault().debug:
         best_model_timestamp = sorted(os.listdir(TrainConfig.getDefault().train_best_export_dir))[-1]

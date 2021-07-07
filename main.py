@@ -8,7 +8,7 @@ import optparse
 import sys
 
 import freeze_graph
-import inference_graph
+import predict_graph
 import train_image_classifier
 from base import time_utils
 from base.log_utils import TerminalLogger
@@ -23,10 +23,10 @@ def parseargs():
     usage = 'usage: %prog [options] arg1 arg2'
     parser = optparse.OptionParser(usage=usage)
 
-    option = optparse.OptionGroup(parser, 'region classifier trained options')
+    option = optparse.OptionGroup(parser, 'image classifier trained options')
 
     option.add_option('-p', '--project', dest='project', type='string',
-                      help='which project', default='mnist_region_classifier')
+                      help='which project', default='mnist_image_classifier')
     option.add_option('-n', '--net', dest='net', type='string',
                       help='network', default='mobilenet_v0')
     option.add_option('-k', '--keras', dest='keras', type='int',
@@ -147,16 +147,16 @@ def main():
 
     # step 7
     # test model
-    totals, success, fails, percent = inference_graph.inference(model_dir=TrainConfig.getDefault().model_freeze_dir,
-                                                                test_dir=TFRecordConfig.getDefault().source_image_test_dir,
-                                                                test_log=TrainConfig.getDefault().inference_file,
-                                                                input_tensor_name='{}:0'.format(
+    totals, success, fails, percent = predict_graph.predict(model_dir=TrainConfig.getDefault().model_freeze_dir,
+                                                            test_dir=TFRecordConfig.getDefault().source_image_test_dir,
+                                                            test_log=TrainConfig.getDefault().inference_file,
+                                                            input_tensor_name='{}:0'.format(
                                                                     TrainBaseConfig.INPUT_TENSOR_NAME),
-                                                                output_tensor_name='{}:0'.format(
+                                                            output_tensor_name='{}:0'.format(
                                                                     TrainBaseConfig.OUTPUT_TENSOR_NAME),
-                                                                shape=TFRecordConfig.getDefault().image_shape,
-                                                                gpu=gpu,
-                                                                debug=True)
+                                                            shape=TFRecordConfig.getDefault().image_shape,
+                                                            gpu=gpu,
+                                                            debug=True)
 
     send_msg_to_bot(start_time, '总数 = {} , 成功 = {} , 失败 = {} , 正确率 = {} ,'.format(totals, success, fails, percent))
 

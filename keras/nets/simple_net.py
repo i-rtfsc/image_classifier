@@ -5,11 +5,11 @@
 
 import tensorflow as tf
 
-from keras.net.base_model import BaseModel
+from keras.nets.base_model import BaseModel
 
 
 class SimpleNet(BaseModel):
-    def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
+    def __init__(self, num_classes=1000, input_shape=(224, 224, 3), input_tensor_name='input',
                  output_tensor_name='Softmax'):
         self.input_layer = self.InputLayer(input_shape=input_shape, name=input_tensor_name)
         self.flatten = self.Flatten()

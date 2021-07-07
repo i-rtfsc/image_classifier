@@ -72,11 +72,11 @@ def work_impl(sess, input_node, output_node, files, labels, width, height, chann
             fails += 1
 
 
-def inference(model_dir='', test_dir='',
-              input_tensor_name='input:0',
-              output_tensor_name='mobile_net_v2/Softmax/Softmax:0',
-              width=224, height=224, channel=3,
-              debug=False):
+def predict(model_dir='', test_dir='',
+            input_tensor_name='input:0',
+            output_tensor_name='mobile_net_v2/Softmax/Softmax:0',
+            width=224, height=224, channel=3,
+            debug=False):
     frozen_graph_file = None
     label_file = None
     for model in os.listdir(model_dir):
@@ -167,15 +167,15 @@ if __name__ == '__main__':
     try:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-        model_dir = '/home/solo/code/region_classifier/out/mnist_region_classifier/20210701-1555/freeze_model/'
-        test_dir = '/home/solo/code/region_classifier/resource/mnist/test/'
-        inference(model_dir=model_dir,
-                  test_dir=test_dir,
-                  # input_tensor_name='x:0',
-                  # output_tensor_name='Identity:0',
-                  input_tensor_name='input:0',
-                  output_tensor_name='Softmax/Softmax:0',
-                  width=28, height=28, channel=1,
-                  debug=True)
+        model_dir = '/home/solo/code/image_classifier/out/mnist_image_classifier/20210701-1555/freeze_model/'
+        test_dir = '/home/solo/code/image_classifier/resource/mnist/test/'
+        predict(model_dir=model_dir,
+                test_dir=test_dir,
+                # input_tensor_name='x:0',
+                # output_tensor_name='Identity:0',
+                input_tensor_name='input:0',
+                output_tensor_name='Softmax/Softmax:0',
+                width=28, height=28, channel=1,
+                debug=True)
     except KeyboardInterrupt:
         exit()

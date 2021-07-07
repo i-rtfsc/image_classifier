@@ -6,7 +6,7 @@ import tensorflow as tf
 
 
 class BaseModel(object):
-    def __init__(self, num_classes=1000, input_shape=(224, 224, 13), input_tensor_name='input',
+    def __init__(self, num_classes=1000, input_shape=(224, 224, 3), input_tensor_name='input',
                  output_tensor_name='Softmax'):
         pass
 

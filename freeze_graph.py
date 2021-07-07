@@ -9,10 +9,13 @@ import shutil
 from tensorflow.python.tools import freeze_graph
 
 from base import env_utils, file_utils
+from config.global_configs import ProjectConfig, TrainBaseConfig, TrainConfig, TFRecordBaseConfig, TFRecordConfig, \
+    UserConfig
 
 
 def freeze_session(model_dir='', frozen_out_dir='',
-                   frozen_graph_filename='region_classifier', output_tensor_name='Softmax',
+                   frozen_graph_filename='image_classifier',
+                   output_tensor_name='Softmax',
                    gpu='0', meta_file=None):
     final_model_path = None
     for model in os.listdir(model_dir):
@@ -55,4 +58,19 @@ def freeze_session(model_dir='', frozen_out_dir='',
 
 
 if __name__ == '__main__':
-    pass
+    project = None
+    time = None
+    gpu = '3'
+
+    ProjectConfig.getDefault().update(project=project, time=time)
+    UserConfig.getDefault().update()
+    TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
+    TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_DATASET)
+    TrainConfig.getDefault().update()
+
+    freeze_session(model_dir=TrainConfig.getDefault().train_best_export_dir,
+                   frozen_out_dir=TrainConfig.getDefault().model_freeze_dir,
+                   frozen_graph_filename=TrainConfig.getDefault().project,
+                   output_tensor_name=TrainBaseConfig.OUTPUT_TENSOR_NAME,
+                   gpu=gpu,
+                   meta_file=TFRecordConfig.getDefault().meta_file)

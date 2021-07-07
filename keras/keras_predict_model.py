@@ -39,7 +39,6 @@ def load_graph(file_path):
     graph_nodes = [n for n in graph_def.node]
     return graph, graph_nodes
 
-
 # def work_impl(frozen_func, files, labels, width, height, channel, task_name, debug=False):
 def work_impl(model, files, labels, width, height, channel, task_name, debug=False):
     # for file in tqdm(files, desc=task_name):
@@ -73,7 +72,7 @@ def work_impl(model, files, labels, width, height, channel, task_name, debug=Fal
             fails += 1
 
 
-def inference(model_dir='', test_dir='', width=224, height=224, channel=3, debug=False):
+def predict(model_dir='', test_dir='', width=224, height=224, channel=3, debug=False):
     label_file = None
     final_model_file = None
     for model in os.listdir(model_dir):
@@ -163,11 +162,11 @@ def inference(model_dir='', test_dir='', width=224, height=224, channel=3, debug
 if __name__ == '__main__':
     try:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-        model_dir = '/home/solo/code/region_classifier/out/mnist_region_classifier/20210701-1555/trained/final/'
-        test_dir = '/home/solo/code/region_classifier/resource/mnist/test/'
-        inference(model_dir=model_dir,
-                  test_dir=test_dir,
-                  width=28, height=28, channel=1,
-                  debug=True)
+        model_dir = '/home/solo/code/image_classifier/out/mnist_image_classifier/20210701-1555/trained/final/'
+        test_dir = '/home/solo/code/image_classifier/resource/mnist/test/'
+        predict(model_dir=model_dir,
+                test_dir=test_dir,
+                width=28, height=28, channel=1,
+                debug=True)
     except KeyboardInterrupt:
         exit()
