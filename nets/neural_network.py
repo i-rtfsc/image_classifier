@@ -152,7 +152,7 @@ class NeuralNetwork(object):
 
     @staticmethod
     def build_network(features, labels, mode, params):
-        network_name = ProjectConfig.getDefault().net
+        network_name = params.net
         num_classes = params.num_classes
         IMAGE = params.image
         LABEL = params.label
@@ -298,3 +298,48 @@ class NeuralNetwork(object):
                 "predict_output": tf.estimator.export.PredictOutput(predictions_dict)
             }
             return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
+
+    @staticmethod
+    def smart_model_fn(features, labels, mode, params):
+        # network_name = params.net
+        num_classes = params.num_classes
+        input_shape = params.shape
+        input_tensor_name = params.input_tensor_name
+        output_tensor_name = params.output_tensor_name
+        IMAGE = params.image
+        LABEL = params.label
+        is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+
+        from nets.smart_net import SmartNet
+        smart_net = SmartNet(inputs=features["image"],
+                             num_classes=num_classes,
+                             is_training=is_training,
+                             width_multiplier=1,
+                             scope='SmartNet')
+        logits, predictions = smart_net.build_network(output_tensor_name)
+
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
+        label_one_hot = tf.one_hot(labels[LABEL], num_classes)
+        loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(onehot_labels=label_one_hot, logits=logits))
+        # loss = tf.reduce_mean(tf.losses.sparse_softmax_cross_entropy(labels=labels[LABEL], logits=logits))
+
+        # Configure the Training Optimizer (for TRAIN mode)
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=params.learning_rate)
+            train_op = optimizer.minimize(
+                loss=loss,
+                global_step=tf.train.get_global_step()
+            )
+            tf.summary.scalar('global_step', tf.train.get_global_step())
+            # tf.summary.scalar('loss', loss)
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+
+        if mode == tf.estimator.ModeKeys.EVAL:
+            accuracy = tf.metrics.accuracy(labels=labels[LABEL], predictions=predictions)
+            tf.summary.scalar('accuracy', accuracy)
+            eval_metric_ops = {
+                "accuracy": accuracy
+            }
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
