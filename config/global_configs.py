@@ -51,17 +51,13 @@ class ProjectConfig(BaseConfig):
             if 'time' == key and value is not None:
                 self.time = value
             if 'project' == key and value is not None:
-                self.project = value
+                self.project = value.lower()
             if 'keras' == key and value is not None:
                 self.keras = value
             if 'net' == key and value is not None:
                 self.net = value
             if 'debug' == key and value is not None:
                 self.debug = value
-
-        self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
-        print('project config update config from cfg, project name =', self.project, ', time =', self.time, ', net =',
-              self.net, ', debug =', self.debug)
 
         try:
             base_config = configparser.ConfigParser()
@@ -92,9 +88,21 @@ class ProjectConfig(BaseConfig):
                 self.source_image_extract_dir = configs['SOURCE_IMAGE_EXTRACT']
             else:
                 self.source_image_extract_dir = os.path.join(self.root_dir, configs['SOURCE_IMAGE_EXTRACT'])
-
         except Exception as e:
             print('exception when parse, error = ', e)
+
+        try:
+            train_out = configs['TRAIN_OUT']
+            self.out = os.path.join(train_out, self.project, self.time)
+        except Exception as e:
+            self.out = os.path.join(os.path.join(self.root_dir, 'out'), self.project, self.time)
+            print(e)
+
+        print('project config update config from cfg, project name =', self.project,
+              ', time =', self.time,
+              ', net =', self.net,
+              ', debug =', self.debug,
+              ', out =', self.out)
 
 
 @Singleton
