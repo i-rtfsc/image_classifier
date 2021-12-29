@@ -69,7 +69,7 @@ def main():
     test_image = 't10k-images-idx3-ubyte'
     test_label = 't10k-labels-idx1-ubyte'
 
-    ProjectConfig.getDefault().update(project='mnist_region_classifier', debug=True)
+    ProjectConfig.getDefault().update(project='MNIST_IMAGE_CLASSIFIER', debug=True)
     TFRecordConfig.getDefault().update(TFRecordBaseConfig.UPDATE_BASE)
 
     download_dir = ProjectConfig.getDefault().source_image_download_dir

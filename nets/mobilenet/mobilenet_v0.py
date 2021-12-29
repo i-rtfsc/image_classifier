@@ -85,7 +85,7 @@ def mobilenet_v0_base(inputs,
     if output_stride is not None and output_stride not in [8, 16, 32]:
         raise ValueError('Only allowed output_stride values are 8, 16, 32.')
 
-    with tf.variable_scope(scope, 'MobilenetV1', [inputs]):
+    with tf.variable_scope(scope, 'MobilenetV0', [inputs]):
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d], padding='SAME'):
             # The current_stride variable keeps track of the output stride of the
             # activations, i.e., the running product of convolution strides up to the

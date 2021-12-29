@@ -122,7 +122,7 @@ def running_train(train_dataset, valid_dataset, test_dataset, gpu='0'):
         # 如果用这种方式训练，返回的dataset是{xxx, image}, {yyy, classifier}
         # estimator都是这种数据
         estimator_network = tf.estimator.Estimator(
-            model_fn=NeuralNetwork.smart_model_fn,
+            model_fn=NeuralNetwork.build_network,
             model_dir=TrainConfig.getDefault().train_dir,
             config=estimator_config,
             params=training_params,
